@@ -36,7 +36,7 @@ GPS_BAUD_RATE = 9600
 
 # Configuration du servomoteur
 SERVO_PIN = 13
-FREQ = 50
+FREQ = 50	
 
 # Configuration des capteurs à ultrasons HC-SR04
 TRIGGER_PIN1 = 15

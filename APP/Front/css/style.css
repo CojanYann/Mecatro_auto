@@ -1,0 +1,453 @@
+:root {
+    --blue-dark: #395791;
+    --blue-light: #a1b4c2;
+    --blue-lighter: #d1dbe4;
+    --red: #eb0503;
+    --beige: #f5ecd7;
+    --white: #ffffff;
+    --text-dark: #333333;
+    --text-light: #777777;
+    --success: #2ecc71;
+    --warning: #f39c12;
+    --danger: #e74c3c;
+}
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Comfortaa', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: var(--white);
+    color: var(--text-dark);
+    touch-action: manipulation;
+}
+
+.container {
+    max-width: 100%;
+    padding: 10px;
+}
+
+.logo-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.logo {
+    width: 30px;
+    height: 30px;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><circle cx="100" cy="100" r="90" fill="%23f5ecd7"/><path d="M60,60 L60,100 L100,100 L100,60 Z" fill="%23eb0503"/><path d="M140,60 L140,100 L100,100 L100,60 Z" fill="%23395791"/><circle cx="70" cy="70" r="5" fill="%23395791"/><circle cx="130" cy="70" r="5" fill="%23eb0503"/></svg>');
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+
+.title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-dark);
+    text-align: center;
+    margin-left: 8px;
+}
+
+.card {
+    background-color: var(--white);
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 15px;
+    border: 1px solid var(--blue-light);
+}
+
+.section-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: var(--blue-dark);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Slider pour le servomoteur */
+.servo-control {
+    padding: 10px;
+    margin-bottom: 5px;
+}
+
+.servo-slider {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(to right, var(--blue-light), var(--blue-dark));
+    outline: none;
+    margin-bottom: 10px;
+}
+
+.servo-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--blue-dark);
+    cursor: pointer;
+    border: 3px solid white;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+.servo-slider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--blue-dark);
+    cursor: pointer;
+    border: 3px solid white;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+.servo-value {
+    text-align: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--blue-dark);
+}
+
+.control-buttons {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.button {
+    padding: 10px 15px;
+    background-color: var(--blue-dark);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    transition: all 0.2s ease;
+    flex: 1;
+    text-align: center;
+}
+
+.button:hover {
+    background-color: #2a4473;
+}
+
+.button:active {
+    transform: translateY(2px);
+}
+
+/* Capteurs à ultrasons */
+.ultrasonic-sensors {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.sensor-card {
+    flex: 1;
+    background-color: var(--blue-lighter);
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+    position: relative;
+    min-height: 180px;
+}
+
+.sensor-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--blue-dark);
+    margin: 10px 0;
+}
+
+.sensor-unit {
+    font-size: 16px;
+    color: var(--text-light);
+}
+
+.sensor-label {
+    font-size: 14px;
+    color: var(--text-dark);
+    margin-bottom: 15px;
+}
+
+.sensor-bar {
+    height: 10px;
+    background-color: var(--blue-lighter);
+    border-radius: 5px;
+    margin: 15px 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.sensor-progress {
+    height: 100%;
+    background: linear-gradient(to right, var(--success), var(--warning), var(--danger));
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.sensor-status {
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+    display: inline-block;
+    margin-top: 10px;
+}
+
+.sensor-status.safe {
+    background-color: var(--success);
+}
+
+.sensor-status.warning {
+    background-color: var(--warning);
+}
+
+.sensor-status.danger {
+    background-color: var(--danger);
+}
+
+.sensor-indicator {
+    width: 100%;
+    height: 100px;
+    position: relative;
+    margin-top: 10px;
+}
+
+.sensor-waves {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.sensor-obstacle {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 40px;
+    background-color: var(--blue-dark);
+    border-radius: 3px;
+    transition: right 0.5s ease;
+}
+
+.sensor-device {
+    position: absolute;
+    top: 50%;
+    left: 10px;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 20px;
+    background-color: var(--blue-light);
+    border-radius: 3px;
+}
+
+.sensor-beam {
+    position: absolute;
+    top: 50%;
+    left: 50px;
+    height: 1px;
+    background-color: rgba(57, 87, 145, 0.4);
+    transform: translateY(-50%);
+    transition: width 0.5s ease;
+}
+
+/* Navigation et boussole */
+.navigation-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.map-container {
+    width: 100%;
+    height: 200px;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 15px;
+    border: 1px solid var(--blue-light);
+}
+
+.compass-container {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 15px auto;
+}
+
+.compass-bg {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background-color: var(--blue-lighter);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.compass-marker {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 20px solid var(--red);
+}
+
+.compass-needle {
+    width: 4px;
+    height: 80px;
+    background: linear-gradient(to bottom, var(--red) 50%, var(--blue-dark) 50%);
+    transform-origin: center center;
+    transition: transform 0.5s ease;
+    position: relative;
+    z-index: 1;
+}
+
+.compass-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: var(--white);
+    border: 2px solid var(--blue-light);
+    z-index: 2;
+}
+
+.compass-text {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    top: -25px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--blue-dark);
+}
+
+.compass-degrees {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    bottom: -25px;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+.gps-coordinates {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+.gps-value {
+    background-color: var(--beige);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: monospace;
+    font-weight: 600;
+    color: var(--blue-dark);
+    flex: 1;
+    margin: 0 5px;
+    text-align: center;
+}
+
+.journal-section {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid var(--blue-light);
+    border-radius: 8px;
+    padding: 5px;
+    background-color: #f9f9f9;
+    font-family: monospace;
+    font-size: 11px;
+}
+
+.log-entry {
+    margin-bottom: 3px;
+    padding-bottom: 3px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+}
+
+.log-time {
+    color: var(--blue-dark);
+    font-weight: bold;
+    margin-right: 8px;
+    min-width: 50px;
+}
+
+.log-message {
+    flex: 1;
+}
+
+/* Style pour indiquer l'état de connexion */
+.connection-status {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-left: 8px;
+    background-color: var(--danger);
+    transition: background-color 0.3s ease;
+}
+
+.connection-status.connected {
+    background-color: var(--success);
+}
+
+/* Bouton pour forcer la reconnexion */
+.reconnect-button {
+    background-color: var(--blue-dark);
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-top: 5px;
+    display: block;
+    width: 100%;
+}
+
+/* Sélecteur d'IP */
+.ip-control {
+    margin-top: 10px;
+    display: flex;
+    gap: 5px;
+}
+
+.ip-input {
+    flex: 1;
+    padding: 5px;
+    border: 1px solid var(--blue-light);
+    border-radius: 5px;
+    font-size: 12px;
+}

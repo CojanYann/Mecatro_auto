@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Robot Control - Écran Déporté</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS pour la cartographie -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="logo-header">
+            <div class="logo"></div>
+            <h1 class="title">Robot Control - Écran Déporté</h1>
+            <div class="connection-status" id="connection-status" title="Statut de connexion"></div>
+        </div>
+        
+        <div class="column left-column">
+            <!-- Contrôle de connexion WebSocket -->
+            <div class="card">
+                <div class="section-title">Connexion au Robot</div>
+                <div class="ip-control">
+                    <input type="text" id="ip-input" class="ip-input" value="172.20.10.11" placeholder="Adresse IP du robot">
+                    <button id="connect-button" class="button">Connecter</button>
+                </div>
+                <button id="reconnect-button" class="reconnect-button">Forcer la reconnexion</button>
+            </div>
+            
+            <!-- Contrôle du servomoteur -->
+            <div class="card">
+                <div class="section-title">Contrôle Servomoteur</div>
+                <div class="servo-control">
+                    <input type="range" min="0" max="180" value="90" class="servo-slider" id="servo-slider">
+                    <div class="servo-value" id="servo-value">Position: 90°</div>
+                </div>
+            </div>
+            
+            <!-- Capteurs ultrason -->
+            <div class="card">
+                <div class="section-title">Capteurs Ultrason HC-SR04</div>
+                <div class="ultrasonic-sensors">
+                    <div class="sensor-card">
+                        <div class="sensor-label">CAPTEUR AVANT</div>
+                        <div class="sensor-value" id="sensor1-value">0</div>
+                        <div class="sensor-unit">cm</div>
+                        <div class="sensor-status safe" id="sensor1-status">Distance sûre</div>
+                    </div>
+                    
+                    <div class="sensor-card">
+                        <div class="sensor-label">CAPTEUR ARRIÈRE</div>
+                        <div class="sensor-value" id="sensor2-value">0</div>
+                        <div class="sensor-unit">cm</div>
+                        <div class="sensor-status safe" id="sensor2-status">Distance sûre</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="column right-column">
+            <!-- Navigation et boussole -->
+            <div class="card">
+                <div class="section-title">Navigation GPS</div>
+                <div class="navigation-container">
+                    <div id="map" class="map-container"></div>
+                    <div class="gps-coordinates">
+                        <div class="gps-value" id="gps-latitude">0.0000° N</div>
+                        <div class="gps-value" id="gps-longitude">0.0000° E</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Journal d'activité -->
+            <div class="card">
+                <div class="section-title">Journal d'activité</div>
+                <div class="control-buttons">
+                    <button class="button" id="get-data-button">Demander les données</button>
+                    <button class="button" id="get-distances-button">Demander les distances</button>
+                </div>
+                <div class="journal-section" id="activity-log"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/main.js"></script>
+</body>
+</html>
