@@ -13,9 +13,11 @@
         <div class="logo-header">
             <h1 class="title">Carte - Robot Control</h1>
         </div>
-        <div id="map" class="map-container"></div>
-        <div class="map-controls">
+        <div id="map-container">
+            <div id="map" class="map-container" style="height: 500px;"></div>
             <button id="reset-zone-btn" class="map-button">Reset Zone</button>
+        </div>
+        <div class="map-controls">
             <button id="add-zone-btn" class="map-button">Ajouter Zone</button>
         </div>
     </div>
@@ -47,23 +49,12 @@
 
             createPolygon();
 
-            // Ajouter une position GPS en forme de robot
-            const robotIcon = L.divIcon({
-                className: 'robot-marker-icon',
-                html: '<div style="background-color: #eb0503; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 8px rgba(0,0,0,0.5);"></div>',
-                iconSize: [20, 20],
-                iconAnchor: [10, 10]
-            });
-
-            const robotMarker = L.marker([47.650807340225356, -2.7825384612295423], { icon: robotIcon }).addTo(map);
-            robotMarker.bindPopup("Position actuelle du robot");
-
             // Bouton Reset Zone
             document.getElementById('reset-zone-btn').addEventListener('click', function() {
                 if (polygon) {
                     map.removeLayer(polygon);
+                    polygon = null; // Supprimer la référence au polygone
                 }
-                createPolygon();
             });
 
             // Bouton Ajouter Zone
