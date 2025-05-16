@@ -19,6 +19,7 @@
      crossorigin=""></script>
     
     <style>
+        /* Votre CSS reste inchangé */
         :root {
             --blue-dark: #395791;
             --blue-light: #a1b4c2;
@@ -428,6 +429,50 @@
         .log-message {
             flex: 1;
         }
+
+        /* Style pour indiquer l'état de connexion */
+        .connection-status {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-left: 8px;
+            background-color: var(--danger);
+            transition: background-color 0.3s ease;
+        }
+        
+        .connection-status.connected {
+            background-color: var(--success);
+        }
+
+        /* Bouton pour forcer la reconnexion */
+        .reconnect-button {
+            background-color: var(--blue-dark);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-top: 5px;
+            display: block;
+            width: 100%;
+        }
+
+        /* Sélecteur d'IP */
+        .ip-control {
+            margin-top: 10px;
+            display: flex;
+            gap: 5px;
+        }
+
+        .ip-input {
+            flex: 1;
+            padding: 5px;
+            border: 1px solid var(--blue-light);
+            border-radius: 5px;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
@@ -435,6 +480,17 @@
         <div class="logo-header">
             <div class="logo"></div>
             <h1 class="title">Robot Control - Écran Déporté</h1>
+            <div class="connection-status" id="connection-status" title="Statut de connexion"></div>
+        </div>
+        
+        <!-- Contrôle de connexion WebSocket -->
+        <div class="card">
+            <div class="section-title">Connexion au Robot</div>
+            <div class="ip-control">
+                <input type="text" id="ip-input" class="ip-input" value="172.20.10.11" placeholder="Adresse IP du robot">
+                <button id="connect-button" class="button">Connecter</button>
+            </div>
+            <button id="reconnect-button" class="reconnect-button">Forcer la reconnexion</button>
         </div>
         
         <!-- Contrôle du servomoteur -->
@@ -522,6 +578,10 @@
         <!-- Journal d'activité -->
         <div class="card">
             <div class="section-title">Journal d'activité</div>
+            <div class="control-buttons">
+                <button class="button" id="get-data-button">Demander les données</button>
+                <button class="button" id="get-distances-button">Demander les distances</button>
+            </div>
             <div class="journal-section" id="activity-log"></div>
         </div>
     </div>
@@ -556,6 +616,14 @@
         // Journal
         const activityLog = document.getElementById('activity-log');
         
+        // Contrôle de connexion
+        const connectionStatus = document.getElementById('connection-status');
+        const ipInput = document.getElementById('ip-input');
+        const connectButton = document.getElementById('connect-button');
+        const reconnectButton = document.getElementById('reconnect-button');
+        const getDataButton = document.getElementById('get-data-button');
+        const getDistancesButton = document.getElementById('get-distances-button');
+        
         // Variables globales
         let servoPosition = 90;
         let sensor1Distance = 0;
@@ -567,6 +635,206 @@
         };
         let map;
         let robotMarker;
+        let ws; // Variable pour la connexion WebSocket
+        let isSimulating = true; // Pour désactiver la simulation quand les données réelles arrivent
+        let reconnectTimer = null;
+        
+        // Fonction pour établir la connexion WebSocket
+        function connectWebSocket() {
+            // Utiliser l'adresse IP entrée dans le champ
+            const ipAddress = ipInput.value.trim();
+            const wsUrl = `ws://${ipAddress}:8765`;
+            
+            // Annuler toute reconnexion en attente
+            if (reconnectTimer) {
+                clearTimeout(reconnectTimer);
+                reconnectTimer = null;
+            }
+            
+            try {
+                // Fermer la connexion existante si elle existe
+                if (ws) {
+                    ws.close();
+                }
+                
+                addLogEntry("Tentative de connexion à " + wsUrl);
+                connectionStatus.className = "connection-status";
+                connectionStatus.title = "Connexion en cours...";
+                
+                ws = new WebSocket(wsUrl);
+                
+                ws.onopen = function() {
+                    addLogEntry("Connexion WebSocket établie avec succès");
+                    connectionStatus.className = "connection-status connected";
+                    connectionStatus.title = "Connecté";
+                    isSimulating = false; // Désactiver la simulation en mode réel
+                    
+                    // Demander immédiatement les données pour vérifier que tout fonctionne
+                    sendToRobot("getdistances");
+                };
+                
+                ws.onmessage = function(event) {
+                    try {
+                        addLogEntry("Message reçu du serveur");
+                        const rawData = event.data;
+                        addLogEntry("Données brutes: " + rawData.substring(0, 50) + (rawData.length > 50 ? "..." : ""));
+                        
+                        const data = JSON.parse(rawData);
+                        processIncomingData(data);
+                    } catch (error) {
+                        addLogEntry("Erreur de parsing des données: " + error.message);
+                        // Si le format n'est pas JSON, essayer de traiter comme texte brut
+                        processTextData(event.data);
+                    }
+                };
+                
+                ws.onclose = function(event) {
+                    let reason = "";
+                    if (event.code) {
+                        reason = " (Code: " + event.code;
+                        if (event.reason) reason += ", Raison: " + event.reason;
+                        reason += ")";
+                    }
+                    
+                    addLogEntry("Connexion WebSocket fermée" + reason);
+                    connectionStatus.className = "connection-status";
+                    connectionStatus.title = "Déconnecté";
+                    
+                    // Réactiver la simulation si la connexion est perdue
+                    isSimulating = true;
+                    
+                    // Essayer de se reconnecter après 5 secondes
+                    reconnectTimer = setTimeout(connectWebSocket, 5000);
+                };
+                
+                ws.onerror = function(error) {
+                    addLogEntry("Erreur WebSocket: " + (error.message || "Impossible de se connecter"));
+                    connectionStatus.className = "connection-status";
+                    connectionStatus.title = "Erreur de connexion";
+                    
+                    // En cas d'erreur, garder la simulation active
+                    isSimulating = true;
+                };
+            } catch (error) {
+                addLogEntry("Échec de la connexion WebSocket: " + error.message);
+                connectionStatus.className = "connection-status";
+                connectionStatus.title = "Erreur de connexion";
+                isSimulating = true;
+                
+                // Essayer à nouveau après 5 secondes
+                reconnectTimer = setTimeout(connectWebSocket, 5000);
+            }
+        }
+        
+        // Fonction pour traiter les données au format texte brut
+        function processTextData(text) {
+            addLogEntry("Traitement des données texte: " + text.substring(0, 50) + (text.length > 50 ? "..." : ""));
+            
+            // Détecter et extraire les valeurs de distance pour les deux capteurs
+            // Format attendu: "Distance 1: 224.3 cm" et "Distance 2: 219.5 cm"
+            const distance1Match = text.match(/Distance\s*1\s*:\s*(\d+\.?\d*)\s*cm/i);
+            const distance2Match = text.match(/Distance\s*2\s*:\s*(\d+\.?\d*)\s*cm/i);
+            
+            // Mettre à jour les distances si trouvées
+            if (distance1Match && distance1Match[1]) {
+                const distance1 = parseFloat(distance1Match[1]);
+                updateSensor1(distance1);
+                addLogEntry(`Distance capteur avant extraite: ${distance1} cm`);
+            }
+            
+            if (distance2Match && distance2Match[1]) {
+                const distance2 = parseFloat(distance2Match[1]);
+                updateSensor2(distance2);
+                addLogEntry(`Distance capteur arrière extraite: ${distance2} cm`);
+            }
+        }
+
+        // Traiter les données reçues du WebSocket
+        function processIncomingData(data) {
+            addLogEntry("Traitement des données JSON: " + JSON.stringify(data).substring(0, 100) + "...");
+            
+            // Différents formats possibles selon le message reçu
+            if (data.type === "distance_update" && data.distances) {
+                // Format du message distance_update
+                if (data.distances.sensor1 !== undefined) {
+                    updateSensor1(parseFloat(data.distances.sensor1));
+                }
+                if (data.distances.sensor2 !== undefined) {
+                    updateSensor2(parseFloat(data.distances.sensor2));
+                }
+            } else if (data.type === "full_update" || data.type === "initial_data" || data.type === "data_request") {
+                // Format complet avec toutes les données
+                if (data.distances) {
+                    if (data.distances.sensor1 !== undefined) {
+                        updateSensor1(parseFloat(data.distances.sensor1));
+                    }
+                    if (data.distances.sensor2 !== undefined) {
+                        updateSensor2(parseFloat(data.distances.sensor2));
+                    }
+                }
+                
+                if (data.compass && data.compass.heading !== undefined) {
+                    updateCompass(parseFloat(data.compass.heading));
+                }
+                
+                if (data.location) {
+                    if (data.location.latitude !== undefined && data.location.longitude !== undefined) {
+                        updateGPSCoordinates(
+                            parseFloat(data.location.latitude),
+                            parseFloat(data.location.longitude)
+                        );
+                    }
+                }
+            } else {
+                // Traitement générique pour les autres formats
+                // Vérifier tous les champs possibles
+                if (data.distance1 !== undefined) {
+                    updateSensor1(parseFloat(data.distance1));
+                } else if (data.sensor1 !== undefined) {
+                    updateSensor1(parseFloat(data.sensor1));
+                }
+                
+                if (data.distance2 !== undefined) {
+                    updateSensor2(parseFloat(data.distance2));
+                } else if (data.sensor2 !== undefined) {
+                    updateSensor2(parseFloat(data.sensor2));
+                }
+                
+                if (data.heading !== undefined) {
+                    updateCompass(parseFloat(data.heading));
+                }
+                
+                if (data.latitude !== undefined && data.longitude !== undefined) {
+                    updateGPSCoordinates(
+                        parseFloat(data.latitude),
+                        parseFloat(data.longitude)
+                    );
+                }
+            }
+        }
+        
+        // Fonction pour envoyer des données au serveur WebSocket
+        function sendToRobot(command, value) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                if (value !== undefined) {
+                    // Si une valeur est fournie, envoyer comme JSON
+                    const data = JSON.stringify({
+                        command: command,
+                        value: value
+                    });
+                    ws.send(data);
+                    addLogEntry(`Commande envoyée: ${command} = ${value}`);
+                } else {
+                    // Sinon, envoyer la commande directement (pour les commandes comme "getdata")
+                    ws.send(command);
+                    addLogEntry(`Commande envoyée: ${command}`);
+                }
+                return true;
+            } else {
+                addLogEntry("Impossible d'envoyer les données - WebSocket non connecté");
+                return false;
+            }
+        }
         
         // Initialisation de la carte
         function initMap() {
@@ -623,8 +891,14 @@
         
         // Mise à jour du capteur ultrason 1
         function updateSensor1(distance) {
+            // Vérifier que la valeur est valide
+            if (isNaN(distance) || distance < 0) {
+                addLogEntry(`Capteur avant: Valeur invalide reçue (${distance})`);
+                return;
+            }
+            
             sensor1Distance = distance;
-            sensor1Value.textContent = distance;
+            sensor1Value.textContent = distance.toFixed(1);
             
             // Mise à jour de la barre de progression (100cm = max)
             const progressPercent = Math.min(100, distance) / 100 * 100;
@@ -647,13 +921,19 @@
             sensor1Beam.style.width = `${beamWidth}px`;
             sensor1Obstacle.style.right = `${distance / 2}px`;
             
-            addLogEntry(`Capteur avant: ${distance} cm`);
+            addLogEntry(`Capteur avant: ${distance.toFixed(1)} cm`);
         }
         
         // Mise à jour du capteur ultrason 2
         function updateSensor2(distance) {
+            // Vérifier que la valeur est valide
+            if (isNaN(distance) || distance < 0) {
+                addLogEntry(`Capteur arrière: Valeur invalide reçue (${distance})`);
+                return;
+            }
+            
             sensor2Distance = distance;
-            sensor2Value.textContent = distance;
+            sensor2Value.textContent = distance.toFixed(1);
             
             // Mise à jour de la barre de progression (100cm = max)
             const progressPercent = Math.min(100, distance) / 100 * 100;
@@ -676,7 +956,7 @@
             sensor2Beam.style.width = `${beamWidth}px`;
             sensor2Obstacle.style.right = `${distance / 2}px`;
             
-            addLogEntry(`Capteur arrière: ${distance} cm`);
+            addLogEntry(`Capteur arrière: ${distance.toFixed(1)} cm`);
         }
         
         // Mise à jour du servomoteur
@@ -698,26 +978,100 @@
             
             entry.innerHTML = `<span class="log-time">${timeStr}</span><span class="log-message">${message}</span>`;
             
-            activityLog.appendChild(entry);
-            activityLog.scrollTop = activityLog.scrollHeight;
+            activityLog.prepend(entry); // Ajouter au début pour que les messages les plus récents soient en haut
+            
+            // Limiter le nombre d'entrées pour éviter de surcharger le DOM
+            if (activityLog.children.length > 50) {
+                activityLog.lastChild.remove();
+            }
         }
         
         // Gestionnaires d'événements
         servoSlider.addEventListener('input', function() {
-            updateServo(parseInt(this.value));
+            const position = parseInt(this.value);
+            updateServo(position);
+            
+            // Envoyer la nouvelle position au robot si connecté
+            sendToRobot(position.toString());
         });
         
         servoMin.addEventListener('click', function() {
             updateServo(0);
+            sendToRobot("0");
         });
         
         servoCenter.addEventListener('click', function() {
             updateServo(90);
+            sendToRobot("90");
         });
         
         servoMax.addEventListener('click', function() {
             updateServo(180);
+            sendToRobot("180");
         });
+        
+        // Gestionnaires de connexion
+        connectButton.addEventListener('click', function() {
+            connectWebSocket();
+        });
+        
+        reconnectButton.addEventListener('click', function() {
+            addLogEntry("Reconnexion forcée...");
+            connectWebSocket();
+        });
+        
+        getDataButton.addEventListener('click', function() {
+            sendToRobot("getdata");
+        });
+        
+        getDistancesButton.addEventListener('click', function() {
+            addLogEntry("Demande des distances en cours...");
+            sendToRobot("getdistances");
+        });
+        
+        // Simulation pour la démonstration
+        function startSimulation() {
+            // Simuler des changements de position du servomoteur
+            setInterval(() => {
+                if (!isSimulating) return; // Ne pas simuler si on reçoit des données réelles
+                
+                if (Math.random() > 0.7) {
+                    const newPosition = Math.floor(Math.random() * 181);
+                    updateServo(newPosition);
+                }
+            }, 5000);
+            
+            // Simuler des lectures de capteurs
+            setInterval(() => {
+                if (!isSimulating) return;
+                
+                const distance1 = Math.floor(Math.random() * 100) + 5;
+                updateSensor1(distance1);
+                
+                const distance2 = Math.floor(Math.random() * 100) + 5;
+                updateSensor2(distance2);
+            }, 2000);
+            
+            // Simuler des changements de cap
+            setInterval(() => {
+                if (!isSimulating) return;
+                
+                const newHeading = (heading + (Math.random() * 20 - 10)) % 360;
+                updateCompass(newHeading < 0 ? newHeading + 360 : newHeading);
+            }, 3000);
+            
+            // Simuler des changements de coordonnées GPS
+            setInterval(() => {
+                if (!isSimulating) return;
+                
+                const latChange = (Math.random() - 0.5) * 0.0005;
+                const lngChange = (Math.random() - 0.5) * 0.0005;
+                updateGPSCoordinates(
+                    gpsCoords.latitude + latChange,
+                    gpsCoords.longitude + lngChange
+                );
+            }, 4000);
+        }
         
         // Initialisation
         document.addEventListener('DOMContentLoaded', function() {
@@ -731,47 +1085,14 @@
             updateCompass(0);
             updateGPSCoordinates(48.8566, 2.3522);
             
-            addLogEntry("Système initialisé");
+            addLogEntry("Système initialisé - Date: 2025-05-16 08:46:15 - Utilisateur: Yonoxxx");
             
-            // Simulation pour démonstration
+            // Tenter d'établir une connexion WebSocket
+            connectWebSocket();
+            
+            // Démarrer la simulation seulement si pas de connexion réelle
             startSimulation();
         });
-        
-        // Simuler des données pour la démonstration
-        function startSimulation() {
-            // Simuler des changements de position du servomoteur
-            setInterval(() => {
-                if (Math.random() > 0.7) {
-                    const newPosition = Math.floor(Math.random() * 181);
-                    updateServo(newPosition);
-                }
-            }, 5000);
-            
-            // Simuler des lectures de capteurs
-            setInterval(() => {
-                const distance1 = Math.floor(Math.random() * 100) + 5;
-                updateSensor1(distance1);
-                
-                const distance2 = Math.floor(Math.random() * 100) + 5;
-                updateSensor2(distance2);
-            }, 2000);
-            
-            // Simuler des changements de cap
-            setInterval(() => {
-                const newHeading = (heading + (Math.random() * 20 - 10)) % 360;
-                updateCompass(newHeading < 0 ? newHeading + 360 : newHeading);
-            }, 3000);
-            
-            // Simuler des changements de coordonnées GPS
-            setInterval(() => {
-                const latChange = (Math.random() - 0.5) * 0.0005;
-                const lngChange = (Math.random() - 0.5) * 0.0005;
-                updateGPSCoordinates(
-                    gpsCoords.latitude + latChange,
-                    gpsCoords.longitude + lngChange
-                );
-            }, 4000);
-        }
     </script>
 </body>
 </html>

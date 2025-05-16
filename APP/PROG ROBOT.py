@@ -56,12 +56,22 @@ last_distance2 = 0
 current_latitude = 0.0
 current_longitude = 0.0
 current_heading = 0
-gps_time = "07:47:29"
-gps_date = "2025-05-16"  # Date actuelle
+gps_time = "08:40:08"
+gps_date = "2025-05-16"
+current_user = "Yonoxxxle"
+lcd_mode = 0  # Mode d'affichage de l'écran LCD (0: distances, 1: utilisateur)
 
 # Initialisation des périphériques
 servo = PWM(Pin(SERVO_PIN))
 servo.freq(FREQ)
+
+# Fonction pour ajouter des espaces (équivalent à ljust)
+def pad_with_spaces(text, length):
+    """Ajoute des espaces à la fin d'une chaîne pour atteindre la longueur spécifiée"""
+    text_str = str(text)
+    while len(text_str) < length:
+        text_str += " "
+    return text_str
 
 # Initialisation du LCD
 i2c_lcd = I2C(LCD_I2C_ID, 
@@ -76,6 +86,7 @@ try:
         print(f"Périphériques I2C détectés: {lcd_devices}")
         LCD_ADDR = lcd_devices[0]  # Utiliser la première adresse trouvée
     lcd = I2cLcd(i2c_lcd, LCD_ADDR, LCD_ROWS, LCD_COLS)
+    lcd.backlight_on()  # S'assurer que le rétroéclairage est allumé dès le départ
     print("LCD initialisé avec succès")
 except Exception as e:
     print(f"Erreur lors de l'initialisation du LCD: {e}")
@@ -118,26 +129,51 @@ def measure_distance(trigger, echo):
     """
     Fonction simplifiée pour mesurer la distance avec un capteur HC-SR04
     """
-    # Envoi de l'impulsion
-    trigger.value(0)
-    time.sleep_us(5)
-    trigger.value(1)
-    time.sleep_us(10)
-    trigger.value(0)
-    
-    # Attente du début de l'écho
-    while echo.value() == 0:
-        pulse_start = time.ticks_us()
-    
-    # Attente de la fin de l'écho
-    while echo.value() == 1:
-        pulse_end = time.ticks_us()
-    
-    # Calcul de la distance
-    pulse_duration = time.ticks_diff(pulse_end, pulse_start)
-    distance_cm = pulse_duration * 0.0343 / 2
-    
-    return round(distance_cm, 1)
+    try:
+        # Envoi de l'impulsion
+        trigger.value(0)
+        time.sleep_us(5)
+        trigger.value(1)
+        time.sleep_us(10)
+        trigger.value(0)
+        
+        # Attente du début de l'écho avec timeout
+        count = 0
+        timeout = False
+        while echo.value() == 0:
+            pulse_start = time.ticks_us()
+            count += 1
+            if count > 10000:  # Simple protection timeout
+                timeout = True
+                break
+        
+        if timeout:
+            return 0  # Retourner 0 en cas de timeout
+        
+        # Attente de la fin de l'écho avec timeout
+        count = 0
+        while echo.value() == 1:
+            pulse_end = time.ticks_us()
+            count += 1
+            if count > 10000:  # Simple protection timeout
+                timeout = True
+                break
+        
+        if timeout:
+            return 0  # Retourner 0 en cas de timeout
+        
+        # Calcul de la distance
+        pulse_duration = time.ticks_diff(pulse_end, pulse_start)
+        distance_cm = pulse_duration * 0.0343 / 2
+        
+        # Limiter la plage de mesure
+        if distance_cm > 400 or distance_cm < 2:
+            return 0  # Valeur hors plage
+            
+        return round(distance_cm, 1)
+    except Exception as e:
+        print(f"Erreur dans measure_distance: {e}")
+        return 0
 
 def parse_gps_data(data):
     global current_latitude, current_longitude, gps_time, gps_date
@@ -226,35 +262,54 @@ def connect_to_wifi():
         raise RuntimeError("Impossible de se connecter au Wi-Fi.")
 
 def update_lcd():
-    global current_latitude, current_longitude, current_heading
+    """
+    Mise à jour de l'écran LCD pour afficher les distances des deux capteurs
+    """
+    global last_distance1, last_distance2, current_heading, lcd_mode
     
     if lcd is None:
         return
         
     try:
-        lcd.clear()
+        # S'assurer que le rétroéclairage est allumé
+        lcd.backlight_on()
         
-        # Formatage des coordonnées GPS pour l'affichage LCD
-        lat_str = f"Lat:{current_latitude:.5f}"
+        # Mode d'affichage des distances des capteurs et du compas
+        if lcd_mode == 0:
+            # Première ligne: affichage des distances des deux capteurs
+            dist1_str = f"D1:{last_distance1}cm"
+            dist2_str = f"D2:{last_distance2}cm"
+            
+            lcd.move_to(0, 0)
+            lcd.putstr(pad_with_spaces(dist1_str[:8], 8))
+            
+            lcd.move_to(8, 0)
+            lcd.putstr(pad_with_spaces(dist2_str[:8], 8))
+            
+            # Deuxième ligne: affichage du compas et de l'heure GPS
+            heading_str = f"H:{current_heading}"
+            time_str = gps_time[0:8]
+            
+            lcd.move_to(0, 1)
+            lcd.putstr(pad_with_spaces(heading_str, 8))
+            
+            lcd.move_to(8, 1)
+            lcd.putstr(pad_with_spaces(time_str, 8))
         
-        # Affichage des coordonnées GPS sur la première ligne (côté gauche)
-        lcd.move_to(0, 0)
-        lcd.putstr(lat_str[:8])  # Limiter à 8 caractères pour la première ligne
+        # Mode d'affichage de l'utilisateur et la date
+        elif lcd_mode == 1:
+            # Première ligne: Utilisateur
+            user_str = f"User:{current_user}"
+            lcd.move_to(0, 0)
+            lcd.putstr(pad_with_spaces(user_str[:16], 16))
+            
+            # Deuxième ligne: Date
+            date_str = f"Date:{gps_date}"
+            lcd.move_to(0, 1)
+            lcd.putstr(pad_with_spaces(date_str[:16], 16))
         
-        # Affichage de l'angle du compas sur la première ligne (côté droit)
-        heading_str = f"Head:{current_heading:03d}"
-        lcd.move_to(8, 0)  # Positionner le curseur à la moitié de l'écran
-        lcd.putstr(heading_str)
-        
-        # Deuxième ligne: longitude et heure GPS
-        lon_str = f"Lon:{current_longitude:.5f}"
-        lcd.move_to(0, 1)
-        lcd.putstr(lon_str[:8])  # Longitude limitée à 8 caractères
-        
-        # Afficher l'heure GPS sur la deuxième ligne (côté droit)
-        time_str = gps_time[:8]
-        lcd.move_to(8, 1)
-        lcd.putstr(time_str)
+        # Changer de mode tous les 3 secondes
+        lcd_mode = (lcd_mode + 1) % 2
         
     except Exception as e:
         print(f"Erreur lors de la mise à jour de l'écran LCD: {e}")
@@ -279,27 +334,78 @@ def create_websocket_frame(data):
     frame.extend(data_bytes)
     return frame
 
+# Fonction pour envoyer un message WebSocket de manière synchrone
+def send_websocket_message(clients, message_dict):
+    """Envoie un message WebSocket à tous les clients connectés"""
+    if not clients:
+        return
+    
+    try:
+        # Convertir en JSON
+        message_json = json.dumps(message_dict)
+        # Créer la trame WebSocket
+        frame = create_websocket_frame(message_json)
+        
+        # Liste des clients à supprimer (en cas d'erreur)
+        clients_to_remove = []
+        
+        # Envoyer à tous les clients
+        for client_writer in clients:
+            try:
+                client_writer.write(frame)
+                # Pour éviter les problèmes de blocage, ne pas faire un drain ici
+            except Exception as e:
+                print(f"Erreur envoi WebSocket: {e}")
+                clients_to_remove.append(client_writer)
+        
+        # Supprimer les clients qui ont eu des erreurs
+        for client in clients_to_remove:
+            if client in clients:
+                clients.remove(client)
+                
+    except Exception as e:
+        print(f"Erreur lors de la création du message WebSocket: {e}")
+
 # Tâche asynchrone pour les capteurs
 async def sensor_task(clients):
     global last_distance1, last_distance2, current_heading
+    distance1_changed = False
+    distance2_changed = False
     
     while True:
         try:
-            # Mesure capteur 1 - code simplifié avec gestion des erreurs
-            try:
-                distance1 = measure_distance(trigger1, echo1)
-                last_distance1 = distance1
-                print(f"Distance 1: {distance1} cm")
-            except Exception as e:
-                print(f"Erreur capteur 1: {e}")
+            # Mesure capteur 1
+            new_distance1 = measure_distance(trigger1, echo1)
+            if new_distance1 > 0:  # Valeur valide
+                if abs(new_distance1 - last_distance1) > 0.5:  # Changement significatif
+                    last_distance1 = new_distance1
+                    distance1_changed = True
+                    print(f"Distance 1: {last_distance1} cm")
             
-            # Mesure capteur 2 - code simplifié avec gestion des erreurs
-            try:
-                distance2 = measure_distance(trigger2, echo2)
-                last_distance2 = distance2
-                print(f"Distance 2: {distance2} cm")
-            except Exception as e:
-                print(f"Erreur capteur 2: {e}")
+            # Mesure capteur 2
+            new_distance2 = measure_distance(trigger2, echo2)
+            if new_distance2 > 0:  # Valeur valide
+                if abs(new_distance2 - last_distance2) > 0.5:  # Changement significatif
+                    last_distance2 = new_distance2
+                    distance2_changed = True
+                    print(f"Distance 2: {last_distance2} cm")
+            
+            # Si au moins une des distances a changé, envoyer une mise à jour WebSocket
+            if distance1_changed or distance2_changed:
+                # Préparer les données
+                data = {
+                    "type": "distance_update",
+                    "timestamp": f"{gps_date} {gps_time}",
+                    "user": current_user,
+                    "distances": {
+                        "sensor1": last_distance1,
+                        "sensor2": last_distance2
+                    }
+                }
+                # Envoyer la mise à jour
+                send_websocket_message(clients, data)
+                distance1_changed = False
+                distance2_changed = False
             
             # Lire les données du compas numérique
             if compass:
@@ -317,10 +423,10 @@ async def sensor_task(clients):
                     print(f"Erreur de lecture du compas: {e}")
             
         except Exception as e:
-            print(f"Erreur générale dans la tâche capteur: {e}")
+            print(f"Erreur dans sensor_task: {e}")
         
         # Attendre avant la prochaine mesure
-        await asyncio.sleep(0.5)  # Mesure toutes les 500 ms
+        await asyncio.sleep(0.5)
 
 # Tâche asynchrone pour lire les données GPS
 async def gps_task():
@@ -349,17 +455,18 @@ async def gps_task():
 async def lcd_update_task():
     while True:
         update_lcd()
-        await asyncio.sleep(1)  # Mettre à jour l'écran toutes les secondes
+        await asyncio.sleep(3)  # Changer l'affichage toutes les 3 secondes
 
-# Tâche asynchrone pour envoyer des données WebSocket à intervalles réguliers
+# Tâche asynchrone pour envoyer des données WebSocket périodiquement
 async def websocket_update_task(clients):
     while True:
-        try:
-            if clients:
-                # Préparer les données à envoyer
+        if clients:
+            try:
+                # Préparer les données complètes
                 data = {
-                    "type": "sensor_update",
+                    "type": "full_update",
                     "timestamp": f"{gps_date} {gps_time}",
+                    "user": current_user,
                     "distances": {
                         "sensor1": last_distance1,
                         "sensor2": last_distance2
@@ -373,22 +480,37 @@ async def websocket_update_task(clients):
                     }
                 }
                 
-                # Convertir en JSON et envoyer
-                message = json.dumps(data)
-                frame = create_websocket_frame(message)
+                # Envoyer les données
+                send_websocket_message(clients, data)
                 
-                for client_writer in clients:
-                    try:
-                        client_writer.write(frame)
-                        await client_writer.drain()
-                    except Exception as e:
-                        print(f"Erreur envoi WebSocket: {e}")
-            
-        except Exception as e:
-            print(f"Erreur mise à jour WebSocket: {e}")
+            except Exception as e:
+                print(f"Erreur dans websocket_update_task: {e}")
         
-        # Attendre 5 secondes comme demandé
-        await asyncio.sleep(5)
+        # Attendre avant la prochaine mise à jour
+        await asyncio.sleep(5)  # Mise à jour toutes les 5 secondes
+
+# Tâche asynchrone pour vider les tampons d'écriture des clients WebSocket
+async def websocket_drain_task(clients):
+    """Cette tâche s'occupe de vider régulièrement les tampons d'écriture des clients WebSocket"""
+    while True:
+        if clients:
+            # Liste des clients à supprimer (en cas d'erreur)
+            clients_to_remove = []
+            
+            for client_writer in clients:
+                try:
+                    await client_writer.drain()
+                except Exception as e:
+                    print(f"Erreur lors du drain WebSocket: {e}")
+                    clients_to_remove.append(client_writer)
+            
+            # Supprimer les clients qui ont eu des erreurs
+            for client in clients_to_remove:
+                if client in clients:
+                    clients.remove(client)
+        
+        # Attendre un peu avant de réessayer
+        await asyncio.sleep(0.1)
 
 # Implémentation simple de WebSocket
 async def websocket_handler(reader, writer, clients):
@@ -447,6 +569,7 @@ async def websocket_handler(reader, writer, clients):
         initial_data = {
             "type": "initial_data",
             "timestamp": f"{gps_date} {gps_time}",
+            "user": current_user,
             "distances": {
                 "sensor1": last_distance1,
                 "sensor2": last_distance2
@@ -468,7 +591,7 @@ async def websocket_handler(reader, writer, clients):
         while True:
             # Lire l'en-tête de la trame WebSocket
             header = await reader.read(2)
-            if not header:
+            if not header or len(header) < 2:
                 break
             
             # Décodage simple des trames WebSocket
@@ -487,9 +610,9 @@ async def websocket_handler(reader, writer, clients):
             
             # Lire la charge utile
             data = await reader.read(payload_len)
-            if mask:
+            if mask and data:
                 unmasked_data = bytearray(payload_len)
-                for i in range(payload_len):
+                for i in range(min(payload_len, len(data))):
                     unmasked_data[i] = data[i] ^ masks[i % 4]
                 data = unmasked_data
             
@@ -504,6 +627,7 @@ async def websocket_handler(reader, writer, clients):
                     current_data = {
                         "type": "data_request",
                         "timestamp": f"{gps_date} {gps_time}",
+                        "user": current_user,
                         "distances": {
                             "sensor1": last_distance1,
                             "sensor2": last_distance2
@@ -517,6 +641,19 @@ async def websocket_handler(reader, writer, clients):
                         }
                     }
                     response = json.dumps(current_data)
+                    
+                elif message.lower() == "getdistances":
+                    # Envoyer uniquement les distances
+                    distance_data = {
+                        "type": "distance_data",
+                        "timestamp": f"{gps_date} {gps_time}",
+                        "distances": {
+                            "sensor1": last_distance1,
+                            "sensor2": last_distance2
+                        }
+                    }
+                    response = json.dumps(distance_data)
+                    
                 else:
                     # Traiter comme une commande de servo
                     try:
@@ -535,7 +672,7 @@ async def websocket_handler(reader, writer, clients):
                     except ValueError:
                         response = json.dumps({
                             "type": "error",
-                            "message": "Veuillez envoyer un entier valide ou 'getdata'."
+                            "message": "Commandes disponibles: nombre (0-180), 'getdata', 'getdistances'"
                         })
                 
                 # Envoyer la réponse WebSocket
@@ -554,7 +691,10 @@ async def websocket_handler(reader, writer, clients):
         print(f"Connexion fermée avec {client_info}")
         if writer in clients:
             clients.remove(writer)
-        await writer.aclose()
+        try:
+            await writer.close()
+        except:
+            pass
 
 # Test simple des capteurs HC-SR04
 def test_hcsr04():
@@ -574,10 +714,37 @@ def test_hcsr04():
         print(f"Erreur capteur 2: {e}")
     print("-------------------------------\n")
 
+# Fonction pour afficher un écran de démarrage sur le LCD
+def show_startup_screen():
+    if lcd is None:
+        return
+    
+    try:
+        lcd.clear()
+        lcd.backlight_on()
+        
+        # Première ligne - Nom d'utilisateur
+        lcd.move_to(0, 0)
+        user_display = pad_with_spaces(f"User: {current_user}", 16)
+        lcd.putstr(user_display)
+        
+        # Deuxième ligne - Date/heure
+        lcd.move_to(0, 1)
+        datetime_display = pad_with_spaces(f"{gps_date} {gps_time[:5]}", 16)
+        lcd.putstr(datetime_display)
+        
+        time.sleep(2)  # Afficher pendant 2 secondes
+        
+    except Exception as e:
+        print(f"Erreur lors de l'affichage de l'écran de démarrage: {e}")
+
 async def main():
     # Importer Math ici pour éviter les problèmes d'initialisation
     global math
     import math
+    
+    # Écran de démarrage
+    show_startup_screen()
     
     # Tester les capteurs à ultrasons
     test_hcsr04()
@@ -598,6 +765,7 @@ async def main():
         # Afficher un message de démarrage sur l'écran LCD
         if lcd:
             lcd.clear()
+            lcd.backlight_on()  # Explicitement allumer le rétroéclairage
             lcd.move_to(0, 0)
             lcd.putstr("Serveur WebSocket")
             lcd.move_to(0, 1)
@@ -609,6 +777,7 @@ async def main():
         asyncio.create_task(gps_task())
         asyncio.create_task(lcd_update_task())
         asyncio.create_task(websocket_update_task(clients))
+        asyncio.create_task(websocket_drain_task(clients))
         
         # Fonction de gestion des connexions
         async def handle_client(reader, writer):
@@ -625,6 +794,8 @@ async def main():
 try:
     # Tests initiaux et exécution du programme principal
     print("Démarrage du programme - Version: 2025-05-16")
+    print(f"Heure actuelle: {gps_time}")
+    print(f"Utilisateur: {current_user}")
     asyncio.run(main())
 except KeyboardInterrupt:
     print("Arrêt du serveur...")
@@ -632,5 +803,11 @@ finally:
     # Nettoyage
     servo.duty_u16(0)
     if lcd:
+        # Ne pas éteindre le rétroéclairage lors de la sortie du programme
         lcd.clear()
-        lcd.backlight_off()
+        # Laisser un message final
+        lcd.move_to(0, 0)
+        lcd.putstr("Serveur arrêté!")
+        lcd.move_to(0, 1)
+        lcd.putstr(current_user)
+        lcd.backlight_on()  # S'assurer que le rétroéclairage reste allumé
