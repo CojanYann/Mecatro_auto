@@ -116,8 +116,7 @@ def set_auto(request):
     # Appel à la fonction de mode automatique (serait remplacé par votre propre logique)
     auto_mode()
     
-    return Response(json.dumps({"status": "ok", "mode": "auto"}), 
-                   content_type='application/json')
+    return Response(json.dumps({"status": "ok", "mode": "auto"}))
 
 @app.route('/api/mode/manual', methods=['POST'])
 def set_manual(request):
@@ -127,8 +126,7 @@ def set_manual(request):
         lcd.clear()
         lcd.putstr("Mode: MANUEL")
     
-    return Response(json.dumps({"status": "ok", "mode": "manuel"}), 
-                   content_type='application/json')
+    return Response(json.dumps({"status": "ok", "mode": "manuel"}))
 
 @app.route('/api/status', methods=['GET'])
 def get_status(request):
