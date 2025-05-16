@@ -80,7 +80,7 @@ document.getElementById('stop-btn').addEventListener('click', function() {
     executeAction('/api/move/stop', 'Stop');
 });
 
-// Fonction pour basculer entre les modes manuel et automatique
+// Fonction pour basculer entre les modes manu  el et automatique
 modeButton.addEventListener('click', function() {
     if (isManualMode) {
         executeAction('/api/mode/auto', 'Passer en mode automatique');
