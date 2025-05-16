@@ -16,6 +16,8 @@ const connectButton = document.getElementById('connect-button');
 const reconnectButton = document.getElementById('reconnect-button');
 const getDataButton = document.getElementById('get-data-button');
 const getDistancesButton = document.getElementById('get-distances-button');
+const jsonLogContainer = document.getElementById('json-log');
+const modeButton = document.getElementById('mode-btn');
 
 let servoPosition = 90;
 let sensor1Distance = 0;
@@ -30,6 +32,17 @@ let robotMarker;
 let ws;
 let isSimulating = true;
 let reconnectTimer = null;
+let jsonLogData = [];
+let isManualMode = true; // Par défaut, le mode est manuel
+
+// Fonction pour ajouter une entrée JSON au log sans timestamp
+function addJsonLogEntry(action, description) {
+    const logEntry = { action, description };
+    jsonLogData.push(logEntry);
+
+    // Mettre à jour l'affichage
+    jsonLogContainer.textContent = JSON.stringify(jsonLogData, null, 2);
+}
 
 function connectWebSocket() {
     const ipAddress = ipInput.value.trim();
@@ -225,6 +238,68 @@ function addLogEntry(message) {
     entry.innerHTML = `<span class="log-time">${timeStr}</span><span class="log-message">${message}</span>`;
     activityLog.prepend(entry);
 }
+
+// Fonction pour envoyer une commande et afficher dans le terminal
+function executeAction(action, description) {
+    // Ajouter immédiatement l'entrée au log JSON
+    addJsonLogEntry(action, description);
+
+    fetch(action, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "ok") {
+                addLogEntry(`Action réussie : ${description}`);
+            } else {
+                addLogEntry(`Erreur lors de l'action : ${description}`);
+            }
+        })
+        .catch(error => {
+            addLogEntry(`Erreur réseau : ${description}`);
+        });
+}
+
+// Ajouter des écouteurs pour les boutons
+document.getElementById('pickup-btn').addEventListener('click', function() {
+    executeAction('/action/ramasser', 'Lancer ramassage');
+});
+
+document.getElementById('empty-btn').addEventListener('click', function() {
+    executeAction('/action/vider', 'Vider le bac');
+});
+
+document.getElementById('base-btn').addEventListener('click', function() {
+    executeAction('/action/retour', 'Retour à la base');
+});
+
+// Ajouter des écouteurs pour les touches directionnelles
+document.getElementById('forward-btn').addEventListener('click', function() {
+    executeAction('/move/forward', 'Avancer');
+});
+
+document.getElementById('backward-btn').addEventListener('click', function() {
+    executeAction('/move/backward', 'Reculer');
+});
+
+document.getElementById('left-btn').addEventListener('click', function() {
+    executeAction('/move/left', 'Tourner à gauche');
+});
+
+document.getElementById('right-btn').addEventListener('click', function() {
+    executeAction('/move/right', 'Tourner à droite');
+});
+
+// Fonction pour basculer entre les modes manuel et automatique
+modeButton.addEventListener('click', function() {
+    if (isManualMode) {
+        executeAction('/mode/auto', 'Passer en mode automatique');
+        modeButton.textContent = 'Auto';
+        isManualMode = false;
+    } else {
+        executeAction('/mode/manual', 'Passer en mode manuel');
+        modeButton.textContent = 'Manuel';
+        isManualMode = true;
+    }
+});
 
 // Ajout d'une fonction pour réinitialiser tous les indicateurs
 function resetAllIndicators() {

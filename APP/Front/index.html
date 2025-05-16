@@ -34,10 +34,10 @@
                 <div class="kpi-container">
                     <div class="kpi-item">
                         <span class="kpi-label">Remplissage du bac :</span>
-                        <div class="bin-fill-display">
-                            <div class="bin-fill-bar" id="bin-fill-bar"></div>
-                            <span class="bin-fill-text" id="bin-fill-level">0%</span>
+                        <div class="kpi-progress">
+                            <div class="kpi-progress-bar" id="bin-fill-progress" style="width: 0%;"></div>
                         </div>
+                        <span class="kpi-value" id="bin-fill-level">0%</span>
                     </div>
                     <div class="kpi-item">
                         <span class="kpi-label">Détection des obstacles :</span>
@@ -86,7 +86,6 @@
                         <button class="robot-action-btn" id="pickup-btn">Ramassage</button>
                         <button class="robot-action-btn" id="empty-btn">Vider</button>
                         <button class="robot-action-btn" id="base-btn">Base</button>
-                        <button class="robot-action-btn" id="zone-btn">Zone</button>
                     </div>
                 </div>
             </div>
@@ -98,6 +97,14 @@
                 <div class="section-title">Nouvelle section droite</div>
                 <div class="blank-content">
                     <!-- Contenu à définir -->
+                </div>
+            </div>
+            
+            <!-- Section pour afficher les logs JSON -->
+            <div class="card">
+                <div class="section-title">Logs JSON</div>
+                <div class="json-log" id="json-log">
+                    <!-- Les logs JSON seront affichés ici -->
                 </div>
             </div>
         </div>
