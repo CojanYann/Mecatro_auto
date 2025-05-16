@@ -277,4 +277,104 @@ document.addEventListener('DOMContentLoaded', function() {
     initMap();
     resetAllIndicators(); // Utiliser la nouvelle fonction au chargement
     connectWebSocket();
+
+    // Variables pour le contrôle du servomoteur
+    const servoLeftButton = document.getElementById('servo-left');
+    const servoRightButton = document.getElementById('servo-right');
+    const servoValueDisplay = document.getElementById('servo-value');
+    let servoPosition = 90; // Position initiale
+    const servoStep = 10; // Pas de changement à chaque clic
+    
+    // Gestion des boutons directionnels
+    servoLeftButton.addEventListener('click', function() {
+        if (servoPosition > 0) {
+            servoPosition -= servoStep;
+            updateServoPosition();
+        }
+    });
+    
+    servoRightButton.addEventListener('click', function() {
+        if (servoPosition < 180) {
+            servoPosition += servoStep;
+            updateServoPosition();
+        }
+    });
+    
+    // Fonction pour mettre à jour l'affichage et envoyer la position au serveur
+    function updateServoPosition() {
+        servoValueDisplay.textContent = `Position: ${servoPosition}°`;
+        
+        // Si une connexion WebSocket existe, envoyez la position au serveur
+        if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+            window.socket.send(JSON.stringify({
+                type: 'servo',
+                position: servoPosition
+            }));
+        }
+    }
+
+    // Récupération des éléments de contrôle
+    const speedSlider = document.getElementById('speed-slider');
+    const speedValue = document.getElementById('speed-value');
+    const forwardBtn = document.getElementById('forward-btn');
+    const backwardBtn = document.getElementById('backward-btn');
+    const leftBtn = document.getElementById('left-btn');
+    const rightBtn = document.getElementById('right-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    
+    // Configuration du slider de vitesse
+    speedSlider.addEventListener('input', function() {
+        const speed = this.value;
+        speedValue.textContent = `Vitesse : ${speed}%`;
+    });
+
+    // Initialiser l'affichage de la vitesse au chargement
+    speedValue.textContent = `Vitesse : ${speedSlider.value}%`;
+    
+    // Fonction pour envoyer une commande au robot
+    function sendCommand(command, value = null) {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            const data = {
+                type: 'move',
+                command: command
+            };
+            
+            if (value !== null) {
+                data.value = value;
+            }
+            
+            ws.send(JSON.stringify(data));
+            addLogEntry(`Commande envoyée: ${command}${value !== null ? ' (' + value + '%)' : ''}`);
+        } else {
+            console.warn('Pas de connexion WebSocket disponible');
+        }
+    }
+    
+    // Configuration des boutons directionnels
+    forwardBtn.addEventListener('click', () => sendCommand('forward', speedSlider.value));
+    backwardBtn.addEventListener('click', () => sendCommand('backward', speedSlider.value));
+    leftBtn.addEventListener('click', () => sendCommand('left', speedSlider.value));
+    rightBtn.addEventListener('click', () => sendCommand('right', speedSlider.value));
+    stopBtn.addEventListener('click', () => sendCommand('stop'));
+    
+    // Support des touches clavier
+    document.addEventListener('keydown', function(e) {
+        switch(e.key) {
+            case 'ArrowUp':
+                forwardBtn.click();
+                break;
+            case 'ArrowDown':
+                backwardBtn.click();
+                break;
+            case 'ArrowLeft':
+                leftBtn.click();
+                break;
+            case 'ArrowRight':
+                rightBtn.click();
+                break;
+            case ' ': // Espace
+                stopBtn.click();
+                break;
+        }
+    });
 });

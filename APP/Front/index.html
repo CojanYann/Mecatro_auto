@@ -30,57 +30,46 @@
                 <button id="reconnect-button" class="reconnect-button">Forcer la reconnexion</button>
             </div>
             
-            <!-- Contrôle du servomoteur -->
+            <!-- Contrôles directionnels du robot -->
             <div class="card">
-                <div class="section-title">Contrôle Servomoteur</div>
-                <div class="servo-control">
-                    <input type="range" min="0" max="180" value="90" class="servo-slider" id="servo-slider">
-                    <div class="servo-value" id="servo-value">Position: 90°</div>
-                </div>
-            </div>
-            
-            <!-- Capteurs ultrason -->
-            <div class="card">
-                <div class="section-title">Capteurs Ultrason HC-SR04</div>
-                <div class="ultrasonic-sensors">
-                    <div class="sensor-card">
-                        <div class="sensor-label">CAPTEUR AVANT</div>
-                        <div class="sensor-value" id="sensor1-value">0</div>
-                        <div class="sensor-unit">cm</div>
-                        <div class="sensor-status safe" id="sensor1-status">Distance sûre</div>
+                <div class="section-title">Contrôle du robot</div>
+                <div class="robot-controls">
+                    <div class="speed-control">
+                        <div class="speed-label">Vitesse</div>
+                        <input type="range" min="0" max="100" value="0" class="speed-slider" id="speed-slider" orient="vertical">
+                        <div class="speed-value" id="speed-value">0%</div>
                     </div>
                     
-                    <div class="sensor-card">
-                        <div class="sensor-label">CAPTEUR ARRIÈRE</div>
-                        <div class="sensor-value" id="sensor2-value">0</div>
-                        <div class="sensor-unit">cm</div>
-                        <div class="sensor-status safe" id="sensor2-status">Distance sûre</div>
+                    <div class="direction-pad">
+                        <button class="direction-btn up-btn" id="forward-btn" aria-label="Avancer">
+                            <span class="arrow-icon">▲</span>
+                        </button>
+                        <div class="horizontal-controls">
+                            <button class="direction-btn left-btn" id="left-btn" aria-label="Gauche">
+                                <span class="arrow-icon">◀</span>
+                            </button>
+                            <button class="direction-btn stop-btn" id="stop-btn" aria-label="Arrêter">
+                                <span class="stop-icon">■</span>
+                            </button>
+                            <button class="direction-btn right-btn" id="right-btn" aria-label="Droite">
+                                <span class="arrow-icon">▶</span>
+                            </button>
+                        </div>
+                        <button class="direction-btn down-btn" id="backward-btn" aria-label="Reculer">
+                            <span class="arrow-icon">▼</span>
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
         
         <div class="column right-column">
-            <!-- Navigation et boussole -->
+            <!-- Nouvelle section droite -->
             <div class="card">
-                <div class="section-title">Navigation GPS</div>
-                <div class="navigation-container">
-                    <div id="map" class="map-container"></div>
-                    <div class="gps-coordinates">
-                        <div class="gps-value" id="gps-latitude">0.0000° N</div>
-                        <div class="gps-value" id="gps-longitude">0.0000° E</div>
-                    </div>
+                <div class="section-title">Nouvelle section droite</div>
+                <div class="blank-content">
+                    <!-- Contenu à définir -->
                 </div>
-            </div>
-            
-            <!-- Journal d'activité -->
-            <div class="card">
-                <div class="section-title">Journal d'activité</div>
-                <div class="control-buttons">
-                    <button class="button" id="get-data-button">Demander les données</button>
-                    <button class="button" id="get-distances-button">Demander les distances</button>
-                </div>
-                <div class="journal-section" id="activity-log"></div>
             </div>
         </div>
     </div>
