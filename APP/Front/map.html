@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carte - Robot Control</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="logo-header">
+            <h1 class="title">Carte - Robot Control</h1>
+        </div>
+        <div id="map" class="map-container"></div>
+        <div class="map-controls">
+            <button id="reset-zone-btn" class="map-button">Reset Zone</button>
+            <button id="add-zone-btn" class="map-button">Ajouter Zone</button>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const map = L.map('map').setView([47.650807340225356, -2.7825384612295423], 18); // Nouvelle coordonnée
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+
+            let polygon;
+
+            // Définir un polygone comme zone de travail
+            function createPolygon() {
+                polygon = L.polygon([
+                    [47.6509, -2.7827],
+                    [47.6509, -2.7823],
+                    [47.6507, -2.7823],
+                    [47.6507, -2.7827]
+                ], {
+                    color: 'blue',
+                    fillColor: '#3388ff',
+                    fillOpacity: 0.5
+                }).addTo(map);
+
+                polygon.bindPopup("Zone de travail");
+            }
+
+            createPolygon();
+
+            // Ajouter une position GPS en forme de robot
+            const robotIcon = L.divIcon({
+                className: 'robot-marker-icon',
+                html: '<div style="background-color: #eb0503; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 8px rgba(0,0,0,0.5);"></div>',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+
+            const robotMarker = L.marker([47.650807340225356, -2.7825384612295423], { icon: robotIcon }).addTo(map);
+            robotMarker.bindPopup("Position actuelle du robot");
+
+            // Bouton Reset Zone
+            document.getElementById('reset-zone-btn').addEventListener('click', function() {
+                if (polygon) {
+                    map.removeLayer(polygon);
+                }
+                createPolygon();
+            });
+
+            // Bouton Ajouter Zone
+            document.getElementById('add-zone-btn').addEventListener('click', function() {
+                const newPolygon = L.polygon([
+                    [47.6508, -2.7826],
+                    [47.6508, -2.7824],
+                    [47.6506, -2.7824],
+                    [47.6506, -2.7826]
+                ], {
+                    color: 'green',
+                    fillColor: '#33ff88',
+                    fillOpacity: 0.5
+                }).addTo(map);
+
+                newPolygon.bindPopup("Nouvelle zone ajoutée");
+            });
+        });
+    </script>
+</body>
+</html>

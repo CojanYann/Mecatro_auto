@@ -34,10 +34,20 @@
                 <div class="kpi-container">
                     <div class="kpi-item">
                         <span class="kpi-label">Remplissage du bac :</span>
-                        <div class="kpi-progress">
-                            <div class="kpi-progress-bar" id="bin-fill-progress" style="width: 0%;"></div>
+                        <div class="bin-fill-display">
+                            <div class="bin-fill-bar" id="bin-fill-bar"></div>
+                            <span class="bin-fill-text" id="bin-fill-level">0%</span>
                         </div>
-                        <span class="kpi-value" id="bin-fill-level">0%</span>
+                    </div>
+                    <div class="kpi-item">
+                        <span class="kpi-label">Détection des obstacles :</span>
+                        <div class="robot-view">
+                            <div class="robot-icon"></div>
+                            <div class="obstacle" id="obstacle-front"></div>
+                            <div class="obstacle" id="obstacle-left"></div>
+                            <div class="obstacle" id="obstacle-right"></div>
+                        </div>
+                        <span class="kpi-value" id="obstacle-distance-front">--</span>
                     </div>
                 </div>
             </div>
