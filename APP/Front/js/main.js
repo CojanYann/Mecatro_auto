@@ -16,25 +16,6 @@ const connectButton = document.getElementById('connect-button');
 const reconnectButton = document.getElementById('reconnect-button');
 const getDataButton = document.getElementById('get-data-button');
 const getDistancesButton = document.getElementById('get-distances-button');
-const batteryLevel = document.getElementById('battery-level');
-const batteryText = document.getElementById('battery-text');
-const powerToggle = document.getElementById('power-toggle');
-const modeBtn = document.getElementById('mode-btn');
-let isAutoMode = false;
-modeBtn.addEventListener('click', function() {
-    isAutoMode = !isAutoMode;
-    if (isAutoMode) {
-        modeBtn.textContent = "Auto";
-        modeBtn.classList.add('active');
-        sendToRobot("mode_auto");
-        addLogEntry("Mode automatique activé");
-    } else {
-        modeBtn.textContent = "Manuel";
-        modeBtn.classList.remove('active');
-        sendToRobot("mode_manuel");
-        addLogEntry("Mode manuel activé");
-    }
-});
 
 let servoPosition = 90;
 let sensor1Distance = 0;
@@ -236,25 +217,6 @@ function updateSensor2(distance) {
     }
 }
 
-// Affichage du niveau de batterie (valeur simulée ou à connecter à vos données réelles)
-function updateBatteryIndicator(percent) {
-    // Clamp entre 0 et 100
-    percent = Math.max(0, Math.min(100, percent));
-    batteryLevel.style.width = percent + "%";
-    batteryText.textContent = percent + "%";
-    // Couleur dynamique selon le niveau
-    if (percent > 50) {
-        batteryLevel.style.background = "#2ecc71";
-    } else if (percent > 20) {
-        batteryLevel.style.background = "#f39c12";
-    } else {
-        batteryLevel.style.background = "#e74c3c";
-    }
-}
-
-// Exemple d'appel (à remplacer par vos données réelles)
-updateBatteryIndicator(75);
-
 function addLogEntry(message) {
     const entry = document.createElement('div');
     entry.className = 'log-entry';
@@ -315,131 +277,4 @@ document.addEventListener('DOMContentLoaded', function() {
     initMap();
     resetAllIndicators(); // Utiliser la nouvelle fonction au chargement
     connectWebSocket();
-
-    // Variables pour le contrôle du servomoteur
-    const servoLeftButton = document.getElementById('servo-left');
-    const servoRightButton = document.getElementById('servo-right');
-    const servoValueDisplay = document.getElementById('servo-value');
-    let servoPosition = 90; // Position initiale
-    const servoStep = 10; // Pas de changement à chaque clic
-    
-    // Gestion des boutons directionnels
-    servoLeftButton.addEventListener('click', function() {
-        if (servoPosition > 0) {
-            servoPosition -= servoStep;
-            updateServoPosition();
-        }
-    });
-    
-    servoRightButton.addEventListener('click', function() {
-        if (servoPosition < 180) {
-            servoPosition += servoStep;
-            updateServoPosition();
-        }
-    });
-    
-    // Fonction pour mettre à jour l'affichage et envoyer la position au serveur
-    function updateServoPosition() {
-        servoValueDisplay.textContent = `Position: ${servoPosition}°`;
-        
-        // Si une connexion WebSocket existe, envoyez la position au serveur
-        if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-            window.socket.send(JSON.stringify({
-                type: 'servo',
-                position: servoPosition
-            }));
-        }
-    }
-
-    // Récupération des éléments de contrôle
-    const speedSlider = document.getElementById('speed-slider');
-    const speedValue = document.getElementById('speed-value');
-    const forwardBtn = document.getElementById('forward-btn');
-    const backwardBtn = document.getElementById('backward-btn');
-    const leftBtn = document.getElementById('left-btn');
-    const rightBtn = document.getElementById('right-btn');
-    const stopBtn = document.getElementById('stop-btn');
-    
-    // Configuration du slider de vitesse
-    speedSlider.addEventListener('input', function() {
-        // Calcul du pourcentage réel selon la position du slider (min/max)
-        const min = parseInt(speedSlider.min, 10);
-        const max = parseInt(speedSlider.max, 10);
-        const val = parseInt(speedSlider.value, 10);
-        const percent = Math.round(((val - min) / (max - min)) * 100);
-        speedValue.textContent = `Vitesse : ${percent}%`;
-    });
-
-    // Initialiser l'affichage de la vitesse au chargement
-    (function() {
-        const min = parseInt(speedSlider.min, 10);
-        const max = parseInt(speedSlider.max, 10);
-        const val = parseInt(speedSlider.value, 10);
-        const percent = Math.round(((val - min) / (max - min)) * 100);
-        speedValue.textContent = `Vitesse : ${percent}%`;
-    })();
-    
-    // Fonction pour envoyer une commande au robot
-    function sendCommand(command, value = null) {
-        if (ws && ws.readyState === WebSocket.OPEN) {
-            const data = {
-                type: 'move',
-                command: command
-            };
-            
-            if (value !== null) {
-                data.value = value;
-            }
-            
-            ws.send(JSON.stringify(data));
-            addLogEntry(`Commande envoyée: ${command}${value !== null ? ' (' + value + '%)' : ''}`);
-        } else {
-            console.warn('Pas de connexion WebSocket disponible');
-        }
-    }
-    
-    // Configuration des boutons directionnels
-    forwardBtn.addEventListener('click', () => sendCommand('forward', speedSlider.value));
-    backwardBtn.addEventListener('click', () => sendCommand('backward', speedSlider.value));
-    leftBtn.addEventListener('click', () => sendCommand('left', speedSlider.value));
-    rightBtn.addEventListener('click', () => sendCommand('right', speedSlider.value));
-    stopBtn.addEventListener('click', () => sendCommand('stop'));
-    
-    // Support des touches clavier
-    document.addEventListener('keydown', function(e) {
-        switch(e.key) {
-            case 'ArrowUp':
-                forwardBtn.click();
-                break;
-            case 'ArrowDown':
-                backwardBtn.click();
-                break;
-            case 'ArrowLeft':
-                leftBtn.click();
-                break;
-            case 'ArrowRight':
-                rightBtn.click();
-                break;
-            case ' ': // Espace
-                stopBtn.click();
-                break;
-        }
-    });
-});
-
-// Gestion du bouton ON/OFF pour allumer/éteindre le robot
-let isPowerOn = true;
-powerToggle.addEventListener('click', function() {
-    isPowerOn = !isPowerOn;
-    if (isPowerOn) {
-        powerToggle.textContent = "ON";
-        powerToggle.classList.remove('off');
-        sendToRobot("power_on");
-        addLogEntry("Robot allumé");
-    } else {
-        powerToggle.textContent = "OFF";
-        powerToggle.classList.add('off');
-        sendToRobot("power_off");
-        addLogEntry("Robot éteint");
-    }
 });

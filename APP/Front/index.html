@@ -14,34 +14,36 @@
 <body>
     <div class="container">
         <div class="logo-header">
-            <div class="logo"></div>
+            <div class="status-row">
+                <button id="power-toggle" class="power-toggle">ON</button>
+            </div>
             <h1 class="title">Robot Control - Écran Déporté</h1>
-            <div class="connection-status" id="connection-status" title="Statut de connexion"></div>
+            <div class="battery-indicator" id="battery-indicator" title="Niveau de batterie">
+                <div class="battery-icon">
+                    <div class="battery-level" id="battery-level"></div>
+                    <div class="battery-cap"></div>
+                </div>
+                <span class="battery-text" id="battery-text">--%</span>
+            </div>
         </div>
         
         <div class="column left-column">
-            <!-- Contrôle de connexion WebSocket -->
-            <div class="card">
-                <div class="section-title">Connexion au Robot</div>
-                <div class="ip-control">
-                    <input type="text" id="ip-input" class="ip-input" value="172.20.10.11" placeholder="Adresse IP du robot">
-                    <button id="connect-button" class="button">Connecter</button>
-                </div>
-                <div class="status-row">
-                    <button id="power-toggle" class="power-toggle">ON</button>
-                    <div class="battery-indicator" id="battery-indicator" title="Niveau de batterie">
-                        <div class="battery-icon">
-                            <div class="battery-level" id="battery-level"></div>
-                            <div class="battery-cap"></div>
+            <!-- Encadré des KPI -->
+            <div class="card kpi-card">
+                <div class="section-title">KPI</div>
+                <div class="kpi-container">
+                    <div class="kpi-item">
+                        <span class="kpi-label">Remplissage du bac :</span>
+                        <div class="kpi-progress">
+                            <div class="kpi-progress-bar" id="bin-fill-progress" style="width: 0%;"></div>
                         </div>
-                        <span class="battery-text" id="battery-text">--%</span>
+                        <span class="kpi-value" id="bin-fill-level">0%</span>
                     </div>
                 </div>
-                <button id="reconnect-button" class="reconnect-button">Forcer la reconnexion</button>
             </div>
             
             <!-- Contrôles directionnels du robot -->
-            <div class="card">
+            <div class="card robot-controls-card">
                 <div class="section-title">Contrôle du robot</div>
                 <div class="robot-controls">
                     <div class="speed-control">
