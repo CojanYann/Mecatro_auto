@@ -16,6 +16,25 @@ const connectButton = document.getElementById('connect-button');
 const reconnectButton = document.getElementById('reconnect-button');
 const getDataButton = document.getElementById('get-data-button');
 const getDistancesButton = document.getElementById('get-distances-button');
+const batteryLevel = document.getElementById('battery-level');
+const batteryText = document.getElementById('battery-text');
+const powerToggle = document.getElementById('power-toggle');
+const modeBtn = document.getElementById('mode-btn');
+let isAutoMode = false;
+modeBtn.addEventListener('click', function() {
+    isAutoMode = !isAutoMode;
+    if (isAutoMode) {
+        modeBtn.textContent = "Auto";
+        modeBtn.classList.add('active');
+        sendToRobot("mode_auto");
+        addLogEntry("Mode automatique activé");
+    } else {
+        modeBtn.textContent = "Manuel";
+        modeBtn.classList.remove('active');
+        sendToRobot("mode_manuel");
+        addLogEntry("Mode manuel activé");
+    }
+});
 
 let servoPosition = 90;
 let sensor1Distance = 0;
@@ -217,6 +236,25 @@ function updateSensor2(distance) {
     }
 }
 
+// Affichage du niveau de batterie (valeur simulée ou à connecter à vos données réelles)
+function updateBatteryIndicator(percent) {
+    // Clamp entre 0 et 100
+    percent = Math.max(0, Math.min(100, percent));
+    batteryLevel.style.width = percent + "%";
+    batteryText.textContent = percent + "%";
+    // Couleur dynamique selon le niveau
+    if (percent > 50) {
+        batteryLevel.style.background = "#2ecc71";
+    } else if (percent > 20) {
+        batteryLevel.style.background = "#f39c12";
+    } else {
+        batteryLevel.style.background = "#e74c3c";
+    }
+}
+
+// Exemple d'appel (à remplacer par vos données réelles)
+updateBatteryIndicator(75);
+
 function addLogEntry(message) {
     const entry = document.createElement('div');
     entry.className = 'log-entry';
@@ -324,12 +362,22 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Configuration du slider de vitesse
     speedSlider.addEventListener('input', function() {
-        const speed = this.value;
-        speedValue.textContent = `Vitesse : ${speed}%`;
+        // Calcul du pourcentage réel selon la position du slider (min/max)
+        const min = parseInt(speedSlider.min, 10);
+        const max = parseInt(speedSlider.max, 10);
+        const val = parseInt(speedSlider.value, 10);
+        const percent = Math.round(((val - min) / (max - min)) * 100);
+        speedValue.textContent = `Vitesse : ${percent}%`;
     });
 
     // Initialiser l'affichage de la vitesse au chargement
-    speedValue.textContent = `Vitesse : ${speedSlider.value}%`;
+    (function() {
+        const min = parseInt(speedSlider.min, 10);
+        const max = parseInt(speedSlider.max, 10);
+        const val = parseInt(speedSlider.value, 10);
+        const percent = Math.round(((val - min) / (max - min)) * 100);
+        speedValue.textContent = `Vitesse : ${percent}%`;
+    })();
     
     // Fonction pour envoyer une commande au robot
     function sendCommand(command, value = null) {
@@ -377,4 +425,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 break;
         }
     });
+});
+
+// Gestion du bouton ON/OFF pour allumer/éteindre le robot
+let isPowerOn = true;
+powerToggle.addEventListener('click', function() {
+    isPowerOn = !isPowerOn;
+    if (isPowerOn) {
+        powerToggle.textContent = "ON";
+        powerToggle.classList.remove('off');
+        sendToRobot("power_on");
+        addLogEntry("Robot allumé");
+    } else {
+        powerToggle.textContent = "OFF";
+        powerToggle.classList.add('off');
+        sendToRobot("power_off");
+        addLogEntry("Robot éteint");
+    }
 });

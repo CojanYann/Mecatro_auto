@@ -27,6 +27,16 @@
                     <input type="text" id="ip-input" class="ip-input" value="172.20.10.11" placeholder="Adresse IP du robot">
                     <button id="connect-button" class="button">Connecter</button>
                 </div>
+                <div class="status-row">
+                    <button id="power-toggle" class="power-toggle">ON</button>
+                    <div class="battery-indicator" id="battery-indicator" title="Niveau de batterie">
+                        <div class="battery-icon">
+                            <div class="battery-level" id="battery-level"></div>
+                            <div class="battery-cap"></div>
+                        </div>
+                        <span class="battery-text" id="battery-text">--%</span>
+                    </div>
+                </div>
                 <button id="reconnect-button" class="reconnect-button">Forcer la reconnexion</button>
             </div>
             
@@ -58,6 +68,13 @@
                         <button class="direction-btn down-btn" id="backward-btn" aria-label="Reculer">
                             <span class="arrow-icon">▼</span>
                         </button>
+                        <button class="robot-mode-btn" id="mode-btn">Manuel</button>
+                    </div>
+                    <div class="robot-actions">
+                        <button class="robot-action-btn" id="pickup-btn">Ramassage</button>
+                        <button class="robot-action-btn" id="empty-btn">Vider</button>
+                        <button class="robot-action-btn" id="base-btn">Base</button>
+                        <button class="robot-action-btn" id="zone-btn">Zone</button>
                     </div>
                 </div>
             </div>
