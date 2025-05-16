@@ -15,9 +15,12 @@
         </div>
         <div id="map-container">
             <div id="map" class="map-container" style="height: 500px;"></div>
-            <!-- Boutons supprimés -->
+            <div class="map-controls">
+                <button id="draw-zone-btn" class="map-button">Dessiner une zone</button>
+                <button id="finish-zone-btn" class="map-button" style="display:none;">Terminer la zone</button>
+                <button id="cancel-zone-btn" class="map-button" style="display:none;">Annuler</button>
+            </div>
         </div>
-        <!-- Contrôles de la carte supprimés -->
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -57,8 +60,140 @@
             const robotMarker = L.marker([47.650807340225356, -2.7825384612295423], { icon: robotIcon }).addTo(map);
             robotMarker.bindPopup("Position actuelle du robot");
 
-            // Code de création de polygon supprimé
-            // Code des boutons supprimé
+            // Variables pour le dessin de zone
+            let isDrawing = false;
+            let drawnPoints = [];
+            let currentPolygon = null;
+            let tempPolyline = null;
+
+            // Initialiser les contrôles de dessin
+            const drawButton = document.getElementById('draw-zone-btn');
+            const finishButton = document.getElementById('finish-zone-btn');
+            const cancelButton = document.getElementById('cancel-zone-btn');
+
+            // Fonction pour commencer le dessin
+            function startDrawing() {
+                isDrawing = true;
+                drawnPoints = [];
+                
+                // Afficher les boutons appropriés
+                drawButton.style.display = 'none';
+                finishButton.style.display = 'inline-block';
+                cancelButton.style.display = 'inline-block';
+                
+                // Changer le curseur pour indiquer le mode dessin
+                document.getElementById('map').style.cursor = 'crosshair';
+                
+                // Ajouter l'écouteur d'événement pour le clic sur la carte
+                map.on('click', addPoint);
+            }
+            
+            // Fonction pour ajouter un point au polygone
+            function addPoint(e) {
+                if (!isDrawing) return;
+                
+                const latlng = e.latlng;
+                drawnPoints.push([latlng.lat, latlng.lng]);
+                
+                // Effacer la ligne temporaire précédente si elle existe
+                if (tempPolyline) {
+                    map.removeLayer(tempPolyline);
+                }
+                
+                // Dessiner le polygone en cours
+                if (drawnPoints.length >= 1) {
+                    if (currentPolygon) {
+                        map.removeLayer(currentPolygon);
+                    }
+                    
+                    if (drawnPoints.length >= 3) {
+                        // Dessiner un polygone si nous avons assez de points
+                        currentPolygon = L.polygon(drawnPoints, {
+                            color: 'green',
+                            fillColor: '#33ff88',
+                            fillOpacity: 0.5
+                        }).addTo(map);
+                    } else {
+                        // Sinon, dessiner juste une ligne
+                        currentPolygon = L.polyline(drawnPoints, {
+                            color: 'green'
+                        }).addTo(map);
+                    }
+                    
+                    // Ajouter un marqueur pour chaque point
+                    L.marker(latlng).addTo(map);
+                }
+            }
+            
+            // Fonction pour terminer le dessin
+            function finishDrawing() {
+                if (drawnPoints.length < 3) {
+                    alert("Il faut au moins 3 points pour créer une zone.");
+                    return;
+                }
+                
+                isDrawing = false;
+                
+                // Réinitialiser les contrôles
+                drawButton.style.display = 'inline-block';
+                finishButton.style.display = 'none';
+                cancelButton.style.display = 'none';
+                
+                // Réinitialiser le curseur
+                document.getElementById('map').style.cursor = '';
+                
+                // Supprimer l'écouteur d'événement
+                map.off('click', addPoint);
+                
+                // Créer le polygone final
+                if (currentPolygon) {
+                    map.removeLayer(currentPolygon);
+                }
+                
+                const finalPolygon = L.polygon(drawnPoints, {
+                    color: 'blue',
+                    fillColor: '#3388ff',
+                    fillOpacity: 0.5
+                }).addTo(map);
+                
+                finalPolygon.bindPopup("Zone personnalisée");
+            }
+            
+            // Fonction pour annuler le dessin
+            function cancelDrawing() {
+                isDrawing = false;
+                
+                // Réinitialiser les contrôles
+                drawButton.style.display = 'inline-block';
+                finishButton.style.display = 'none';
+                cancelButton.style.display = 'none';
+                
+                // Réinitialiser le curseur
+                document.getElementById('map').style.cursor = '';
+                
+                // Supprimer l'écouteur d'événement
+                map.off('click', addPoint);
+                
+                // Supprimer le polygone en cours
+                if (currentPolygon) {
+                    map.removeLayer(currentPolygon);
+                    currentPolygon = null;
+                }
+                
+                // Supprimer la polyline temporaire
+                if (tempPolyline) {
+                    map.removeLayer(tempPolyline);
+                    tempPolyline = null;
+                }
+                
+                // Réinitialiser les points
+                drawnPoints = [];
+            }
+            
+            // Ajouter les écouteurs d'événements aux boutons
+            drawButton.addEventListener('click', startDrawing);
+            finishButton.addEventListener('click', finishDrawing);
+            cancelButton.addEventListener('click', cancelDrawing);
         });
     </script>
 </body>
