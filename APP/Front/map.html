@@ -19,6 +19,7 @@
                 <button id="draw-zone-btn" class="map-button">Dessiner une zone</button>
                 <button id="finish-zone-btn" class="map-button" style="display:none;">Terminer la zone</button>
                 <button id="cancel-zone-btn" class="map-button" style="display:none;">Annuler</button>
+                <button id="delete-zone-btn" class="map-button">Supprimer la zone</button>
             </div>
         </div>
     </div>
@@ -64,12 +65,13 @@
             let isDrawing = false;
             let drawnPoints = [];
             let currentPolygon = null;
-            let tempPolyline = null;
-
+            let finalPolygon = null;
+            
             // Initialiser les contrôles de dessin
             const drawButton = document.getElementById('draw-zone-btn');
             const finishButton = document.getElementById('finish-zone-btn');
             const cancelButton = document.getElementById('cancel-zone-btn');
+            const deleteButton = document.getElementById('delete-zone-btn');
 
             // Fonction pour commencer le dessin
             function startDrawing() {
@@ -150,7 +152,7 @@
                     map.removeLayer(currentPolygon);
                 }
                 
-                const finalPolygon = L.polygon(drawnPoints, {
+                finalPolygon = L.polygon(drawnPoints, {
                     color: 'blue',
                     fillColor: '#3388ff',
                     fillOpacity: 0.5
@@ -190,10 +192,19 @@
                 drawnPoints = [];
             }
             
+            // Fonction pour supprimer la zone
+            function deleteZone() {
+                if (finalPolygon) {
+                    map.removeLayer(finalPolygon);
+                    finalPolygon = null;
+                }
+            }
+            
             // Ajouter les écouteurs d'événements aux boutons
             drawButton.addEventListener('click', startDrawing);
             finishButton.addEventListener('click', finishDrawing);
             cancelButton.addEventListener('click', cancelDrawing);
+            deleteButton.addEventListener('click', deleteZone);
         });
     </script>
 </body>
