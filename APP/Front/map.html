@@ -15,63 +15,50 @@
         </div>
         <div id="map-container">
             <div id="map" class="map-container" style="height: 500px;"></div>
-            <button id="reset-zone-btn" class="map-button">Reset Zone</button>
+            <!-- Boutons supprimés -->
         </div>
-        <div class="map-controls">
-            <button id="add-zone-btn" class="map-button">Ajouter Zone</button>
-        </div>
+        <!-- Contrôles de la carte supprimés -->
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const map = L.map('map').setView([47.650807340225356, -2.7825384612295423], 18); // Nouvelle coordonnée
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
+            const map = L.map('map').setView([47.650807340225356, -2.7825384612295423], 19);
+            
+            // Définir les différentes couches de carte
+            const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 21,
                 attribution: '© OpenStreetMap'
-            }).addTo(map);
-
-            let polygon;
-
-            // Définir un polygone comme zone de travail
-            function createPolygon() {
-                polygon = L.polygon([
-                    [47.6509, -2.7827],
-                    [47.6509, -2.7823],
-                    [47.6507, -2.7823],
-                    [47.6507, -2.7827]
-                ], {
-                    color: 'blue',
-                    fillColor: '#3388ff',
-                    fillOpacity: 0.5
-                }).addTo(map);
-
-                polygon.bindPopup("Zone de travail");
-            }
-
-            createPolygon();
-
-            // Bouton Reset Zone
-            document.getElementById('reset-zone-btn').addEventListener('click', function() {
-                if (polygon) {
-                    map.removeLayer(polygon);
-                    polygon = null; // Supprimer la référence au polygone
-                }
+            });
+            
+            const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 21,
+                attribution: 'Imagery © Esri'
+            });
+            
+            // Ajouter la couche par défaut
+            osmLayer.addTo(map);
+            
+            // Créer un contrôle de couches pour basculer entre les cartes
+            const baseMaps = {
+                "Carte Standard": osmLayer,
+                "Satellite": satelliteLayer
+            };
+            
+            // Ajouter le contrôle de couches à la carte
+            L.control.layers(baseMaps).addTo(map);
+            
+            // Ajouter une position GPS en forme de robot
+            const robotIcon = L.divIcon({
+                className: 'robot-marker-icon',
+                html: '<div style="background-color: #eb0503; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 8px rgba(0,0,0,0.5);"></div>',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
             });
 
-            // Bouton Ajouter Zone
-            document.getElementById('add-zone-btn').addEventListener('click', function() {
-                const newPolygon = L.polygon([
-                    [47.6508, -2.7826],
-                    [47.6508, -2.7824],
-                    [47.6506, -2.7824],
-                    [47.6506, -2.7826]
-                ], {
-                    color: 'green',
-                    fillColor: '#33ff88',
-                    fillOpacity: 0.5
-                }).addTo(map);
+            const robotMarker = L.marker([47.650807340225356, -2.7825384612295423], { icon: robotIcon }).addTo(map);
+            robotMarker.bindPopup("Position actuelle du robot");
 
-                newPolygon.bindPopup("Nouvelle zone ajoutée");
-            });
+            // Code de création de polygon supprimé
+            // Code des boutons supprimé
         });
     </script>
 </body>
