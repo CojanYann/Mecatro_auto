@@ -119,7 +119,7 @@ def set_auto(request):
     return Response(json.dumps({"status": "ok", "mode": "auto"}), 
                    content_type='application/json')
 
-@app.route('/api/mode/manuel', methods=['POST'])
+@app.route('/api/mode/manual', methods=['POST'])
 def set_manual(request):
     robot_state["mode"] = "manuel"
     print("🔧 Mode manuel activé")
