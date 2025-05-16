@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Robot Control - Écran Déporté</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS pour la cartographie -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+    
+    <!-- Leaflet JavaScript après le CSS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+    
+    <style>
+        :root {
+            --blue-dark: #395791;
+            --blue-light: #a1b4c2;
+            --blue-lighter: #d1dbe4;
+            --red: #eb0503;
+            --beige: #f5ecd7;
+            --white: #ffffff;
+            --text-dark: #333333;
+            --text-light: #777777;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+        }
+        
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Comfortaa', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--white);
+            color: var(--text-dark);
+            touch-action: manipulation;
+        }
+        
+        .container {
+            max-width: 100%;
+            padding: 10px;
+        }
+        
+        .logo-header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .logo {
+            width: 30px;
+            height: 30px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><circle cx="100" cy="100" r="90" fill="%23f5ecd7"/><path d="M60,60 L60,100 L100,100 L100,60 Z" fill="%23eb0503"/><path d="M140,60 L140,100 L100,100 L100,60 Z" fill="%23395791"/><circle cx="70" cy="70" r="5" fill="%23395791"/><circle cx="130" cy="70" r="5" fill="%23eb0503"/></svg>');
+            background-size: contain;
+            background-repeat: no-repeat;
+        }
+        
+        .title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-dark);
+            text-align: center;
+            margin-left: 8px;
+        }
+        
+        .card {
+            background-color: var(--white);
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 15px;
+            border: 1px solid var(--blue-light);
+        }
+        
+        .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--blue-dark);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Slider pour le servomoteur */
+        .servo-control {
+            padding: 10px;
+            margin-bottom: 5px;
+        }
+        
+        .servo-slider {
+            width: 100%;
+            -webkit-appearance: none;
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(to right, var(--blue-light), var(--blue-dark));
+            outline: none;
+            margin-bottom: 10px;
+        }
+        
+        .servo-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--blue-dark);
+            cursor: pointer;
+            border: 3px solid white;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+        
+        .servo-slider::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--blue-dark);
+            cursor: pointer;
+            border: 3px solid white;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+        
+        .servo-value {
+            text-align: center;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--blue-dark);
+        }
+        
+        .control-buttons {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .button {
+            padding: 10px 15px;
+            background-color: var(--blue-dark);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Comfortaa', sans-serif;
+            font-weight: 600;
+            font-size: 12px;
+            transition: all 0.2s ease;
+            flex: 1;
+            text-align: center;
+        }
+        
+        .button:hover {
+            background-color: #2a4473;
+        }
+        
+        .button:active {
+            transform: translateY(2px);
+        }
+        
+        /* Capteurs à ultrasons */
+        .ultrasonic-sensors {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+        }
+        
+        .sensor-card {
+            flex: 1;
+            background-color: var(--blue-lighter);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            position: relative;
+            min-height: 180px;
+        }
+        
+        .sensor-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--blue-dark);
+            margin: 10px 0;
+        }
+        
+        .sensor-unit {
+            font-size: 16px;
+            color: var(--text-light);
+        }
+        
+        .sensor-label {
+            font-size: 14px;
+            color: var(--text-dark);
+            margin-bottom: 15px;
+        }
+        
+        .sensor-bar {
+            height: 10px;
+            background-color: var(--blue-lighter);
+            border-radius: 5px;
+            margin: 15px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .sensor-progress {
+            height: 100%;
+            background: linear-gradient(to right, var(--success), var(--warning), var(--danger));
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .sensor-status {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+            display: inline-block;
+            margin-top: 10px;
+        }
+        
+        .sensor-status.safe {
+            background-color: var(--success);
+        }
+        
+        .sensor-status.warning {
+            background-color: var(--warning);
+        }
+        
+        .sensor-status.danger {
+            background-color: var(--danger);
+        }
+        
+        .sensor-indicator {
+            width: 100%;
+            height: 100px;
+            position: relative;
+            margin-top: 10px;
+        }
+        
+        .sensor-waves {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        
+        .sensor-obstacle {
+            position: absolute;
+            top: 50%;
+            right: 0;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 40px;
+            background-color: var(--blue-dark);
+            border-radius: 3px;
+            transition: right 0.5s ease;
+        }
+        
+        .sensor-device {
+            position: absolute;
+            top: 50%;
+            left: 10px;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 20px;
+            background-color: var(--blue-light);
+            border-radius: 3px;
+        }
+        
+        .sensor-beam {
+            position: absolute;
+            top: 50%;
+            left: 50px;
+            height: 1px;
+            background-color: rgba(57, 87, 145, 0.4);
+            transform: translateY(-50%);
+            transition: width 0.5s ease;
+        }
+        
+        /* Navigation et boussole */
+        .navigation-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .map-container {
+            width: 100%;
+            height: 200px;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            border: 1px solid var(--blue-light);
+        }
+        
+        .compass-container {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            margin: 15px auto;
+        }
+        
+        .compass-bg {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: var(--blue-lighter);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .compass-marker {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 20px solid var(--red);
+        }
+        
+        .compass-needle {
+            width: 4px;
+            height: 80px;
+            background: linear-gradient(to bottom, var(--red) 50%, var(--blue-dark) 50%);
+            transform-origin: center center;
+            transition: transform 0.5s ease;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .compass-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: var(--white);
+            border: 2px solid var(--blue-light);
+            z-index: 2;
+        }
+        
+        .compass-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            top: -25px;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--blue-dark);
+        }
+        
+        .compass-degrees {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            bottom: -25px;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+        
+        .gps-coordinates {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+        
+        .gps-value {
+            background-color: var(--beige);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-family: monospace;
+            font-weight: 600;
+            color: var(--blue-dark);
+            flex: 1;
+            margin: 0 5px;
+            text-align: center;
+        }
+        
+        .journal-section {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid var(--blue-light);
+            border-radius: 8px;
+            padding: 5px;
+            background-color: #f9f9f9;
+            font-family: monospace;
+            font-size: 11px;
+        }
+        
+        .log-entry {
+            margin-bottom: 3px;
+            padding-bottom: 3px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+        }
+        
+        .log-time {
+            color: var(--blue-dark);
+            font-weight: bold;
+            margin-right: 8px;
+            min-width: 50px;
+        }
+        
+        .log-message {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo-header">
+            <div class="logo"></div>
+            <h1 class="title">Robot Control - Écran Déporté</h1>
+        </div>
+        
+        <!-- Contrôle du servomoteur -->
+        <div class="card">
+            <div class="section-title">Contrôle Servomoteur</div>
+            <div class="servo-control">
+                <input type="range" min="0" max="180" value="90" class="servo-slider" id="servo-slider">
+                <div class="servo-value" id="servo-value">Position: 90°</div>
+                
+                <div class="control-buttons">
+                    <button class="button" id="servo-min">0°</button>
+                    <button class="button" id="servo-center">90°</button>
+                    <button class="button" id="servo-max">180°</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Capteurs ultrason -->
+        <div class="card">
+            <div class="section-title">Capteurs Ultrason HC-SR04</div>
+            <div class="ultrasonic-sensors">
+                <div class="sensor-card">
+                    <div class="sensor-label">CAPTEUR AVANT</div>
+                    <div class="sensor-value" id="sensor1-value">0</div>
+                    <div class="sensor-unit">cm</div>
+                    
+                    <div class="sensor-bar">
+                        <div class="sensor-progress" id="sensor1-progress"></div>
+                    </div>
+                    
+                    <div class="sensor-status safe" id="sensor1-status">Distance sûre</div>
+                    
+                    <div class="sensor-indicator">
+                        <div class="sensor-waves"></div>
+                        <div class="sensor-device"></div>
+                        <div class="sensor-beam" id="sensor1-beam"></div>
+                        <div class="sensor-obstacle" id="sensor1-obstacle"></div>
+                    </div>
+                </div>
+                
+                <div class="sensor-card">
+                    <div class="sensor-label">CAPTEUR ARRIÈRE</div>
+                    <div class="sensor-value" id="sensor2-value">0</div>
+                    <div class="sensor-unit">cm</div>
+                    
+                    <div class="sensor-bar">
+                        <div class="sensor-progress" id="sensor2-progress"></div>
+                    </div>
+                    
+                    <div class="sensor-status safe" id="sensor2-status">Distance sûre</div>
+                    
+                    <div class="sensor-indicator">
+                        <div class="sensor-waves"></div>
+                        <div class="sensor-device"></div>
+                        <div class="sensor-beam" id="sensor2-beam"></div>
+                        <div class="sensor-obstacle" id="sensor2-obstacle"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Navigation et boussole -->
+        <div class="card">
+            <div class="section-title">Navigation GPS</div>
+            <div class="navigation-container">
+                <div id="map" class="map-container"></div>
+                
+                <div class="compass-container">
+                    <div class="compass-text">Nord</div>
+                    <div class="compass-bg">
+                        <div class="compass-marker"></div>
+                        <div class="compass-needle" id="compass-needle"></div>
+                        <div class="compass-center"></div>
+                    </div>
+                    <div class="compass-degrees" id="compass-degrees">0°</div>
+                </div>
+                
+                <div class="gps-coordinates">
+                    <div class="gps-value" id="gps-latitude">0.0000° N</div>
+                    <div class="gps-value" id="gps-longitude">0.0000° E</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Journal d'activité -->
+        <div class="card">
+            <div class="section-title">Journal d'activité</div>
+            <div class="journal-section" id="activity-log"></div>
+        </div>
+    </div>
+    
+    <script>
+        // Éléments DOM
+        const servoSlider = document.getElementById('servo-slider');
+        const servoValue = document.getElementById('servo-value');
+        const servoMin = document.getElementById('servo-min');
+        const servoCenter = document.getElementById('servo-center');
+        const servoMax = document.getElementById('servo-max');
+        
+        // Capteurs ultrason
+        const sensor1Value = document.getElementById('sensor1-value');
+        const sensor1Progress = document.getElementById('sensor1-progress');
+        const sensor1Status = document.getElementById('sensor1-status');
+        const sensor1Beam = document.getElementById('sensor1-beam');
+        const sensor1Obstacle = document.getElementById('sensor1-obstacle');
+        
+        const sensor2Value = document.getElementById('sensor2-value');
+        const sensor2Progress = document.getElementById('sensor2-progress');
+        const sensor2Status = document.getElementById('sensor2-status');
+        const sensor2Beam = document.getElementById('sensor2-beam');
+        const sensor2Obstacle = document.getElementById('sensor2-obstacle');
+        
+        // Navigation
+        const compassNeedle = document.getElementById('compass-needle');
+        const compassDegrees = document.getElementById('compass-degrees');
+        const gpsLatitude = document.getElementById('gps-latitude');
+        const gpsLongitude = document.getElementById('gps-longitude');
+        
+        // Journal
+        const activityLog = document.getElementById('activity-log');
+        
+        // Variables globales
+        let servoPosition = 90;
+        let sensor1Distance = 0;
+        let sensor2Distance = 0;
+        let heading = 0;
+        let gpsCoords = {
+            latitude: 48.8566,
+            longitude: 2.3522
+        };
+        let map;
+        let robotMarker;
+        
+        // Initialisation de la carte
+        function initMap() {
+            map = L.map('map').setView([gpsCoords.latitude, gpsCoords.longitude], 18);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+            
+            // Icône personnalisée pour le robot
+            const robotIcon = L.divIcon({
+                className: 'robot-marker-icon',
+                html: '<div style="background-color: #eb0503; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 8px rgba(0,0,0,0.5);"></div>',
+                iconSize: [16, 16],
+                iconAnchor: [8, 8]
+            });
+            
+            // Ajouter le marqueur du robot
+            robotMarker = L.marker([gpsCoords.latitude, gpsCoords.longitude], { icon: robotIcon }).addTo(map);
+            
+            addLogEntry("Carte GPS initialisée");
+        }
+        
+        // Mise à jour des coordonnées GPS
+        function updateGPSCoordinates(lat, lng) {
+            gpsCoords.latitude = lat;
+            gpsCoords.longitude = lng;
+            
+            // Mise à jour de l'affichage
+            const latDirection = lat >= 0 ? "N" : "S";
+            const lngDirection = lng >= 0 ? "E" : "W";
+            
+            gpsLatitude.textContent = `${Math.abs(lat).toFixed(6)}° ${latDirection}`;
+            gpsLongitude.textContent = `${Math.abs(lng).toFixed(6)}° ${lngDirection}`;
+            
+            // Mise à jour du marqueur sur la carte
+            if (robotMarker && map) {
+                robotMarker.setLatLng([lat, lng]);
+                map.setView([lat, lng]);
+            }
+            
+            addLogEntry(`Position GPS mise à jour: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+        }
+        
+        // Mise à jour de la boussole
+        function updateCompass(degrees) {
+            heading = degrees;
+            compassNeedle.style.transform = `rotate(${degrees}deg)`;
+            compassDegrees.textContent = `${Math.round(degrees)}°`;
+            
+            addLogEntry(`Cap: ${Math.round(degrees)}°`);
+        }
+        
+        // Mise à jour du capteur ultrason 1
+        function updateSensor1(distance) {
+            sensor1Distance = distance;
+            sensor1Value.textContent = distance;
+            
+            // Mise à jour de la barre de progression (100cm = max)
+            const progressPercent = Math.min(100, distance) / 100 * 100;
+            sensor1Progress.style.width = `${progressPercent}%`;
+            
+            // Mise à jour du statut
+            if (distance < 20) {
+                sensor1Status.className = "sensor-status danger";
+                sensor1Status.textContent = "Danger !";
+            } else if (distance < 50) {
+                sensor1Status.className = "sensor-status warning";
+                sensor1Status.textContent = "Attention";
+            } else {
+                sensor1Status.className = "sensor-status safe";
+                sensor1Status.textContent = "Distance sûre";
+            }
+            
+            // Mise à jour visuelle
+            const beamWidth = Math.min(100, 200 - distance);
+            sensor1Beam.style.width = `${beamWidth}px`;
+            sensor1Obstacle.style.right = `${distance / 2}px`;
+            
+            addLogEntry(`Capteur avant: ${distance} cm`);
+        }
+        
+        // Mise à jour du capteur ultrason 2
+        function updateSensor2(distance) {
+            sensor2Distance = distance;
+            sensor2Value.textContent = distance;
+            
+            // Mise à jour de la barre de progression (100cm = max)
+            const progressPercent = Math.min(100, distance) / 100 * 100;
+            sensor2Progress.style.width = `${progressPercent}%`;
+            
+            // Mise à jour du statut
+            if (distance < 20) {
+                sensor2Status.className = "sensor-status danger";
+                sensor2Status.textContent = "Danger !";
+            } else if (distance < 50) {
+                sensor2Status.className = "sensor-status warning";
+                sensor2Status.textContent = "Attention";
+            } else {
+                sensor2Status.className = "sensor-status safe";
+                sensor2Status.textContent = "Distance sûre";
+            }
+            
+            // Mise à jour visuelle
+            const beamWidth = Math.min(100, 200 - distance);
+            sensor2Beam.style.width = `${beamWidth}px`;
+            sensor2Obstacle.style.right = `${distance / 2}px`;
+            
+            addLogEntry(`Capteur arrière: ${distance} cm`);
+        }
+        
+        // Mise à jour du servomoteur
+        function updateServo(position) {
+            servoPosition = position;
+            servoSlider.value = position;
+            servoValue.textContent = `Position: ${position}°`;
+            
+            addLogEntry(`Servomoteur: ${position}°`);
+        }
+        
+        // Ajouter une entrée au journal
+        function addLogEntry(message) {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            
+            const now = new Date();
+            const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+            
+            entry.innerHTML = `<span class="log-time">${timeStr}</span><span class="log-message">${message}</span>`;
+            
+            activityLog.appendChild(entry);
+            activityLog.scrollTop = activityLog.scrollHeight;
+        }
+        
+        // Gestionnaires d'événements
+        servoSlider.addEventListener('input', function() {
+            updateServo(parseInt(this.value));
+        });
+        
+        servoMin.addEventListener('click', function() {
+            updateServo(0);
+        });
+        
+        servoCenter.addEventListener('click', function() {
+            updateServo(90);
+        });
+        
+        servoMax.addEventListener('click', function() {
+            updateServo(180);
+        });
+        
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialisation de la carte
+            initMap();
+            
+            // Valeurs initiales
+            updateServo(90);
+            updateSensor1(100);
+            updateSensor2(100);
+            updateCompass(0);
+            updateGPSCoordinates(48.8566, 2.3522);
+            
+            addLogEntry("Système initialisé");
+            
+            // Simulation pour démonstration
+            startSimulation();
+        });
+        
+        // Simuler des données pour la démonstration
+        function startSimulation() {
+            // Simuler des changements de position du servomoteur
+            setInterval(() => {
+                if (Math.random() > 0.7) {
+                    const newPosition = Math.floor(Math.random() * 181);
+                    updateServo(newPosition);
+                }
+            }, 5000);
+            
+            // Simuler des lectures de capteurs
+            setInterval(() => {
+                const distance1 = Math.floor(Math.random() * 100) + 5;
+                updateSensor1(distance1);
+                
+                const distance2 = Math.floor(Math.random() * 100) + 5;
+                updateSensor2(distance2);
+            }, 2000);
+            
+            // Simuler des changements de cap
+            setInterval(() => {
+                const newHeading = (heading + (Math.random() * 20 - 10)) % 360;
+                updateCompass(newHeading < 0 ? newHeading + 360 : newHeading);
+            }, 3000);
+            
+            // Simuler des changements de coordonnées GPS
+            setInterval(() => {
+                const latChange = (Math.random() - 0.5) * 0.0005;
+                const lngChange = (Math.random() - 0.5) * 0.0005;
+                updateGPSCoordinates(
+                    gpsCoords.latitude + latChange,
+                    gpsCoords.longitude + lngChange
+                );
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
