@@ -92,3 +92,18 @@ modeButton.addEventListener('click', function() {
         isManualMode = true;
     }
 });
+
+// Mettre à jour la valeur de la vitesse en fonction du slider
+const speedSlider = document.getElementById('speed-slider');
+const speedValue = document.getElementById('speed-value');
+
+speedSlider.addEventListener('input', function() {
+    // Inverser la valeur : 100 - valeur du slider
+    speedValue.textContent = `${100 - speedSlider.value}%`;
+});
+
+speed = 100 - speedSlider.value;
+
+document.getElementById('speed-slider').addEventListener('click', function() {
+    executeAction('/api/speed', 100-speedSlider.value);
+});
