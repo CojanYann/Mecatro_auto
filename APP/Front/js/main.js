@@ -3,6 +3,8 @@
 const activityLog = document.getElementById('activity-log');
 const jsonLogContainer = document.getElementById('json-log');
 const modeButton = document.getElementById('mode-btn');
+const speedSlider = document.getElementById('speed-slider');
+const speedValue = document.getElementById('speed-value');
 
 let jsonLogData = [];
 let isManualMode = true; // Par défaut, le mode est manuel
@@ -16,16 +18,6 @@ function addJsonLogEntry(action, description) {
     jsonLogContainer.textContent = JSON.stringify(jsonLogData, null, 2);
 }
 
-
-
-function addLogEntry(message) {
-    const entry = document.createElement('div');
-    entry.className = 'log-entry';
-    const now = new Date();
-    const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
-    entry.innerHTML = `<span class="log-time">${timeStr}</span><span class="log-message">${message}</span>`;
-    activityLog.prepend(entry);
-}
 
 // Fonction pour envoyer une commande et afficher dans le terminal
 function executeAction(action, description) {
@@ -80,6 +72,7 @@ document.getElementById('stop-btn').addEventListener('click', function() {
     executeAction('/api/move/stop', 'Stop');
 });
 
+
 // Fonction pour basculer entre les modes manu  el et automatique
 modeButton.addEventListener('click', function() {
     if (isManualMode) {
@@ -93,17 +86,13 @@ modeButton.addEventListener('click', function() {
     }
 });
 
-// Mettre à jour la valeur de la vitesse en fonction du slider
-const speedSlider = document.getElementById('speed-slider');
-const speedValue = document.getElementById('speed-value');
 
-speedSlider.addEventListener('input', function() {
-    // Inverser la valeur : 100 - valeur du slider
-    speedValue.textContent = `${100 - speedSlider.value}%`;
+speedSlider.addEventListener('click', function() {
+    const speed = 100 - speedSlider.value;
+    executeAction('/api/speed', speed);
 });
 
-speed = 100 - speedSlider.value;
-
-document.getElementById('speed-slider').addEventListener('click', function() {
-    executeAction('/api/speed', 100-speedSlider.value);
+speedSlider.addEventListener('input', function() {
+    const speed = 100 - speedSlider.value;
+    speedValue.textContent = `${speed}%`;
 });
