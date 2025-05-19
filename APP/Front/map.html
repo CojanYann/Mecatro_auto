@@ -11,6 +11,7 @@
 <body>
     <div class="container">
         <div class="logo-header">
+            <a href="index.html" class="map-button" style="margin-bottom:10px;display:inline-block;">Accueil</a>
             <h1 class="title">Carte - Robot Control</h1>
         </div>
         <div id="map-container">
@@ -22,190 +23,17 @@
                 <button id="delete-zone-btn" class="map-button">Supprimer la zone</button>
             </div>
         </div>
+            <div class="column right-column">
+            
+            <!-- Section pour afficher les logs JSON -->
+            <div class="card">
+                <div class="section-title">Logs JSON</div>
+                <div class="json-log" id="json-log">
+                    <!-- Les logs JSON seront affichés ici -->
+                </div>
+            </div>
+        </div>
     </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const map = L.map('map').setView([47.650807340225356, -2.7825384612295423], 19);
-            
-            // Définir les différentes couches de carte
-            const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 21,
-                attribution: '© OpenStreetMap'
-            });
-            
-            const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 21,
-                attribution: 'Imagery © Esri'
-            });
-            
-            // Ajouter la couche par défaut
-            osmLayer.addTo(map);
-            
-            // Créer un contrôle de couches pour basculer entre les cartes
-            const baseMaps = {
-                "Carte Standard": osmLayer,
-                "Satellite": satelliteLayer
-            };
-            
-            // Ajouter le contrôle de couches à la carte
-            L.control.layers(baseMaps).addTo(map);
-            
-            // Ajouter une position GPS en forme de robot
-            const robotIcon = L.divIcon({
-                className: 'robot-marker-icon',
-                html: '<div style="background-color: #eb0503; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 8px rgba(0,0,0,0.5);"></div>',
-                iconSize: [20, 20],
-                iconAnchor: [10, 10]
-            });
-
-            const robotMarker = L.marker([47.650807340225356, -2.7825384612295423], { icon: robotIcon }).addTo(map);
-            robotMarker.bindPopup("Position actuelle du robot");
-
-            // Variables pour le dessin de zone
-            let isDrawing = false;
-            let drawnPoints = [];
-            let currentPolygon = null;
-            let finalPolygon = null;
-            
-            // Initialiser les contrôles de dessin
-            const drawButton = document.getElementById('draw-zone-btn');
-            const finishButton = document.getElementById('finish-zone-btn');
-            const cancelButton = document.getElementById('cancel-zone-btn');
-            const deleteButton = document.getElementById('delete-zone-btn');
-
-            // Fonction pour commencer le dessin
-            function startDrawing() {
-                isDrawing = true;
-                drawnPoints = [];
-                
-                // Afficher les boutons appropriés
-                drawButton.style.display = 'none';
-                finishButton.style.display = 'inline-block';
-                cancelButton.style.display = 'inline-block';
-                
-                // Changer le curseur pour indiquer le mode dessin
-                document.getElementById('map').style.cursor = 'crosshair';
-                
-                // Ajouter l'écouteur d'événement pour le clic sur la carte
-                map.on('click', addPoint);
-            }
-            
-            // Fonction pour ajouter un point au polygone
-            function addPoint(e) {
-                if (!isDrawing) return;
-                
-                const latlng = e.latlng;
-                drawnPoints.push([latlng.lat, latlng.lng]);
-                
-                // Effacer la ligne temporaire précédente si elle existe
-                if (tempPolyline) {
-                    map.removeLayer(tempPolyline);
-                }
-                
-                // Dessiner le polygone en cours
-                if (drawnPoints.length >= 1) {
-                    if (currentPolygon) {
-                        map.removeLayer(currentPolygon);
-                    }
-                    
-                    if (drawnPoints.length >= 3) {
-                        // Dessiner un polygone si nous avons assez de points
-                        currentPolygon = L.polygon(drawnPoints, {
-                            color: 'green',
-                            fillColor: '#33ff88',
-                            fillOpacity: 0.5
-                        }).addTo(map);
-                    } else {
-                        // Sinon, dessiner juste une ligne
-                        currentPolygon = L.polyline(drawnPoints, {
-                            color: 'green'
-                        }).addTo(map);
-                    }
-                    
-                    // Ajouter un marqueur pour chaque point
-                    L.marker(latlng).addTo(map);
-                }
-            }
-            
-            // Fonction pour terminer le dessin
-            function finishDrawing() {
-                if (drawnPoints.length < 3) {
-                    alert("Il faut au moins 3 points pour créer une zone.");
-                    return;
-                }
-                
-                isDrawing = false;
-                
-                // Réinitialiser les contrôles
-                drawButton.style.display = 'inline-block';
-                finishButton.style.display = 'none';
-                cancelButton.style.display = 'none';
-                
-                // Réinitialiser le curseur
-                document.getElementById('map').style.cursor = '';
-                
-                // Supprimer l'écouteur d'événement
-                map.off('click', addPoint);
-                
-                // Créer le polygone final
-                if (currentPolygon) {
-                    map.removeLayer(currentPolygon);
-                }
-                
-                finalPolygon = L.polygon(drawnPoints, {
-                    color: 'blue',
-                    fillColor: '#3388ff',
-                    fillOpacity: 0.5
-                }).addTo(map);
-                
-                finalPolygon.bindPopup("Zone personnalisée");
-            }
-            
-            // Fonction pour annuler le dessin
-            function cancelDrawing() {
-                isDrawing = false;
-                
-                // Réinitialiser les contrôles
-                drawButton.style.display = 'inline-block';
-                finishButton.style.display = 'none';
-                cancelButton.style.display = 'none';
-                
-                // Réinitialiser le curseur
-                document.getElementById('map').style.cursor = '';
-                
-                // Supprimer l'écouteur d'événement
-                map.off('click', addPoint);
-                
-                // Supprimer le polygone en cours
-                if (currentPolygon) {
-                    map.removeLayer(currentPolygon);
-                    currentPolygon = null;
-                }
-                
-                // Supprimer la polyline temporaire
-                if (tempPolyline) {
-                    map.removeLayer(tempPolyline);
-                    tempPolyline = null;
-                }
-                
-                // Réinitialiser les points
-                drawnPoints = [];
-            }
-            
-            // Fonction pour supprimer la zone
-            function deleteZone() {
-                if (finalPolygon) {
-                    map.removeLayer(finalPolygon);
-                    finalPolygon = null;
-                }
-            }
-            
-            // Ajouter les écouteurs d'événements aux boutons
-            drawButton.addEventListener('click', startDrawing);
-            finishButton.addEventListener('click', finishDrawing);
-            cancelButton.addEventListener('click', cancelDrawing);
-            deleteButton.addEventListener('click', deleteZone);
-        });
-    </script>
+    <script src = "js/map.js"></script>
 </body>
 </html>

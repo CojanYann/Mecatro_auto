@@ -1,191 +1,140 @@
-let map;
-let createdZone;
-let drawingMode = false;
-let drawnPoints = [];
-let currentPolygon = null;
+// Initialisation des fonds de carte
+const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, // essaie 22 ou 23
+    attribution: '© OpenStreetMap'
+});
 
-// Initialiser la carte
-function initMap() {
-    map = L.map('map').setView([48.8566, 2.3522], 13); // Coordonnées par défaut (Paris)
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '© OpenStreetMap'
-    }).addTo(map);
+const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19, // essaie 22 ou 23
+    attribution: 'Imagery © Esri'
+});
 
-    // Créer les boutons de contrôle de dessin
-    createDrawingControls();
-    
-    // Ajouter un exemple de zone
-    createdZone = L.rectangle([[48.856, 2.351], [48.857, 2.353]], {
-        color: "#ff7800",
-        weight: 1
-    }).addTo(map);
-    
-    // Ajouter l'écouteur d'événement pour le clic sur la carte
-    map.on('click', onMapClick);
-}
+// Initialisation de la carte
+const map = L.map('map', {
+    center: [47.62, -2.78], // Coordonnées par défaut (ex: Paris)
+    zoom: 10,
+    layers: [satelliteLayer],
+});
 
-// Fonction appelée lors du clic sur la carte
-function onMapClick(e) {
-    if (!drawingMode) return;
-    
+// Contrôle pour changer de fond de carte
+const baseMaps = {
+    "Plan": osmLayer,
+    "Satellite": satelliteLayer
+};
+
+L.control.layers(baseMaps).addTo(map);
+
+// --- Ajout du dessin de zone ---
+let drawing = false;
+let points = [];
+let markers = [];
+let polyline = null;
+let polygon = null;
+
+// Boutons
+const drawBtn = document.getElementById('draw-zone-btn');
+const finishBtn = document.getElementById('finish-zone-btn');
+const cancelBtn = document.getElementById('cancel-zone-btn');
+const deleteBtn = document.getElementById('delete-zone-btn');
+
+// Activer le mode dessin
+drawBtn.addEventListener('click', function() {
+    drawing = true;
+    points = [];
+    markers.forEach(m => map.removeLayer(m));
+    markers = [];
+    if (polyline) { map.removeLayer(polyline); polyline = null; }
+    if (polygon) { map.removeLayer(polygon); polygon = null; }
+    finishBtn.style.display = '';
+    cancelBtn.style.display = '';
+    drawBtn.style.display = 'none';
+});
+
+// Ajouter un point sur la carte
+map.on('click', function(e) {
+    if (!drawing) return;
     const latlng = e.latlng;
-    drawnPoints.push([latlng.lat, latlng.lng]);
-    
-    // Marquer le point cliqué
-    L.circleMarker(latlng, {
-        color: '#3388ff',
-        radius: 5
-    }).addTo(map);
-    
-    // Mettre à jour le polygone en cours de dessin
-    updateCurrentPolygon();
-}
+    points.push([latlng.lat, latlng.lng]);
+    const marker = L.marker(latlng).addTo(map);
+    markers.push(marker);
 
-// Mettre à jour le polygone en cours de dessin
-function updateCurrentPolygon() {
-    if (currentPolygon) {
-        map.removeLayer(currentPolygon);
-    }
-    
-    if (drawnPoints.length >= 2) {
-        currentPolygon = L.polyline(drawnPoints, {
-            color: 'blue',
-            weight: 2
-        }).addTo(map);
-    }
-    
-    // Si nous avons au moins 3 points, on peut dessiner un polygone
-    if (drawnPoints.length >= 3) {
-        if (currentPolygon) {
-            map.removeLayer(currentPolygon);
-        }
-        currentPolygon = L.polygon(drawnPoints, {
-            color: 'blue',
-            fillColor: '#3388ff',
-            fillOpacity: 0.3
-        }).addTo(map);
-    }
-}
+    // Mettre à jour la ligne
+    if (polyline) map.removeLayer(polyline);
+    polyline = L.polyline(points, {color: 'blue'}).addTo(map);
+});
 
-// Créer les boutons de contrôle de dessin
-function createDrawingControls() {
-    const drawControl = document.createElement('div');
-    drawControl.className = 'map-controls';
-    drawControl.innerHTML = `
-        <button id="draw-zone-btn" class="map-button">Dessiner une zone</button>
-        <button id="finish-zone-btn" class="map-button" style="display:none;">Terminer</button>
-        <button id="cancel-zone-btn" class="map-button" style="display:none;">Annuler</button>
-    `;
-    document.querySelector('#map-container').appendChild(drawControl);
-    
-    // Ajouter les écouteurs d'événements pour les nouveaux boutons
-    document.getElementById('draw-zone-btn').addEventListener('click', startDrawing);
-    document.getElementById('finish-zone-btn').addEventListener('click', finishDrawing);
-    document.getElementById('cancel-zone-btn').addEventListener('click', cancelDrawing);
-}
+// Terminer la zone
+finishBtn.addEventListener('click', function() {
+    if (points.length < 3) return; // Il faut au moins 3 points
+    drawing = false;
+    // Fermer le polygone
+    if (polyline) { map.removeLayer(polyline); polyline = null; }
+    if (polygon) map.removeLayer(polygon);
+    polygon = L.polygon(points, {color: 'blue', fillColor: 'blue', fillOpacity: 0.3}).addTo(map);
 
-// Démarrer le dessin
-function startDrawing() {
-    drawingMode = true;
-    drawnPoints = [];
-    
-    // Afficher/masquer les boutons appropriés
-    document.getElementById('draw-zone-btn').style.display = 'none';
-    document.getElementById('finish-zone-btn').style.display = 'inline-block';
-    document.getElementById('cancel-zone-btn').style.display = 'inline-block';
-    document.getElementById('reset-zone-btn').style.display = 'none';
-    
-    // Changer le curseur pour indiquer le mode dessin
-    map._container.style.cursor = 'crosshair';
-}
+    // Envoyer les coordonnées à l'API
+    fetch('/api/coordgsp/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({coords: points})
+    });
 
-// Terminer le dessin
-function finishDrawing() {
-    if (drawnPoints.length < 3) {
-        alert("Il faut au moins 3 points pour créer une zone.");
-        return;
-    }
-    
-    drawingMode = false;
-    
-    // Supprimer l'ancienne zone si elle existe
-    if (createdZone) {
-        map.removeLayer(createdZone);
-    }
-    
-    // Créer la zone finale à partir des points dessinés
-    createdZone = L.polygon(drawnPoints, {
-        color: "#ff7800",
-        fillColor: '#ff7800',
-        fillOpacity: 0.5,
-        weight: 2
-    }).addTo(map);
-    
-    // Supprimer le polygone temporaire
-    if (currentPolygon) {
-        map.removeLayer(currentPolygon);
-        currentPolygon = null;
-    }
-    
-    // Réinitialiser l'interface
-    document.getElementById('draw-zone-btn').style.display = 'inline-block';
-    document.getElementById('finish-zone-btn').style.display = 'none';
-    document.getElementById('cancel-zone-btn').style.display = 'none';
-    document.getElementById('reset-zone-btn').style.display = 'inline-block';
-    
-    // Réinitialiser le curseur
-    map._container.style.cursor = '';
-    
-    console.log("Zone créée avec " + drawnPoints.length + " points");
-}
+    finishBtn.style.display = 'none';
+    cancelBtn.style.display = 'none';
+    drawBtn.style.display = '';
+});
 
 // Annuler le dessin
-function cancelDrawing() {
-    drawingMode = false;
-    drawnPoints = [];
-    
-    // Supprimer le polygone temporaire
-    if (currentPolygon) {
-        map.removeLayer(currentPolygon);
-        currentPolygon = null;
+cancelBtn.addEventListener('click', function() {
+    drawing = false;
+    points = [];
+    markers.forEach(m => map.removeLayer(m));
+    markers = [];
+    if (polyline) { map.removeLayer(polyline); polyline = null; }
+    if (polygon) { map.removeLayer(polygon); polygon = null; }
+    finishBtn.style.display = 'none';
+    cancelBtn.style.display = 'none';
+    drawBtn.style.display = '';
+});
+
+// Supprimer la zone dessinée
+deleteBtn.addEventListener('click', function() {
+    if (polygon) { map.removeLayer(polygon); polygon = null; }
+    markers.forEach(m => map.removeLayer(m));
+    markers = [];
+    points = [];
+    if (polyline) { map.removeLayer(polyline); polyline = null; }
+});
+
+// Fonction pour afficher une zone à partir d'une liste de points
+function displayZoneFromCoords(coords) {
+    // Nettoyer l'affichage précédent
+    markers.forEach(m => map.removeLayer(m));
+    markers = [];
+    if (polyline) { map.removeLayer(polyline); polyline = null; }
+    if (polygon) { map.removeLayer(polygon); polygon = null; }
+    points = [];
+
+    if (Array.isArray(coords) && coords.length > 0) {
+        coords.forEach(pt => {
+            const marker = L.marker(pt).addTo(map);
+            markers.push(marker);
+            points.push(pt);
+        });
+        polyline = L.polyline(points, {color: 'blue'}).addTo(map);
+        if (points.length >= 3) {
+            polygon = L.polygon(points, {color: 'blue', fillColor: 'blue', fillOpacity: 0.3}).addTo(map);
+        }
+        // Centrer la carte sur la zone avec un zoom maximum limité
+        map.fitBounds(L.latLngBounds(points), { maxZoom: 19 });
     }
-    
-    // Réinitialiser l'interface
-    document.getElementById('draw-zone-btn').style.display = 'inline-block';
-    document.getElementById('finish-zone-btn').style.display = 'none';
-    document.getElementById('cancel-zone-btn').style.display = 'none';
-    document.getElementById('reset-zone-btn').style.display = 'inline-block';
-    
-    // Réinitialiser le curseur
-    map._container.style.cursor = '';
-    
-    // Supprimer tous les marqueurs de points
-    map.eachLayer(function(layer) {
-        if (layer instanceof L.CircleMarker) {
-            map.removeLayer(layer);
+}
+
+// Au chargement, récupérer et afficher la zone si elle existe
+fetch('/api/coordgsp/')
+    .then(response => response.json())
+    .then(data => {
+        if (data && Array.isArray(data.coords) && data.coords.length > 0) {
+            displayZoneFromCoords(data.coords);
         }
     });
-}
-
-// Réinitialiser la zone
-function resetZone() {
-    if (createdZone) {
-        map.removeLayer(createdZone);
-        createdZone = null;
-        console.log("Zone supprimée.");
-        
-        // Supprimer tous les marqueurs de points
-        map.eachLayer(function(layer) {
-            if (layer instanceof L.CircleMarker) {
-                map.removeLayer(layer);
-            }
-        });
-    }
-}
-
-// Ajouter un écouteur pour le bouton "Reset Zone"
-document.getElementById('reset-zone-btn').addEventListener('click', resetZone);
-
-// Initialiser la carte au chargement de la page
-document.addEventListener('DOMContentLoaded', initMap);

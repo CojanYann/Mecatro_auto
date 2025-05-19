@@ -29,6 +29,7 @@ function executeAction(action, description) {
         .then(data => {
             if (data.status === "ok") {
                 addLogEntry(`Action réussie : ${description}`);
+                fetchAndDisplayGpsCoords(); // <-- Ajout ici
             } else {
                 addLogEntry(`Erreur lors de l'action : ${description}`);
             }
