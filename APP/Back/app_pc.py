@@ -7,6 +7,8 @@ CORS(app)
 
 # Stockage temporaire en mémoire pour les coordonnées GPS
 gps_coords = {"coords": []}
+# Stockage temporaire pour la position du robot
+robot_position = {"lat": None, "lng": None}
 
 # Routes pour servir les fichiers statiques
 @app.route('/index.html')
@@ -36,6 +38,20 @@ def coordgsp():
         return jsonify({"status": "ok"})
     else:
         return jsonify(gps_coords)
+
+# API pour la position du robot
+@app.route('/api/coordrobot/', methods=['GET', 'POST'])
+def coordrobot():
+    global robot_position
+    if request.method == 'POST':
+        data = request.get_json()
+        if data and "lat" in data and "lng" in data:
+            robot_position["lat"] = data["lat"]
+            robot_position["lng"] = data["lng"]
+            return jsonify({"status": "ok"})
+        return jsonify({"status": "error", "message": "lat/lng manquants"}), 400
+    else:
+        return jsonify(robot_position)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

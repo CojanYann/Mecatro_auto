@@ -31,11 +31,80 @@ let markers = [];
 let polyline = null;
 let polygon = null;
 
+// --- Marqueur du robot ---
+let robotMarker = null;
+let robotCentered = false; // Pour centrer la carte une seule fois
+
+// Icône rouge pour le robot
+const robotIcon = L.icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    shadowSize: [41, 41]
+});
+
 // Boutons
 const drawBtn = document.getElementById('draw-zone-btn');
 const finishBtn = document.getElementById('finish-zone-btn');
 const cancelBtn = document.getElementById('cancel-zone-btn');
 const deleteBtn = document.getElementById('delete-zone-btn');
+
+// Fonction pour afficher ou mettre à jour la position du robot
+function updateRobotPosition(lat, lng) {
+    if (robotMarker) {
+        robotMarker.setLatLng([lat, lng]);
+        robotMarker.openPopup(); // Ouvre la popup à chaque mise à jour
+    } else {
+        robotMarker = L.marker([lat, lng], {icon: robotIcon, title: "Robot", zIndexOffset: 1000}).addTo(map);
+        console.log("Marqueur robot ajouté à la carte:", lat, lng);
+    }
+    // Centrer la carte sur le robot la première fois
+    if (!robotCentered) {
+        map.setView([lat, lng], 17); // Zoom sur le robot 
+        robotCentered = true;
+    }
+}
+
+// Fonction pour récupérer la position du robot depuis l'API
+function fetchRobotPosition() {
+    fetch('/api/coordrobot/')
+        .then(response => response.json())
+        .then(data => {
+            // Affiche les données reçues dans la console et dans la section log
+            console.log("Coordonnées robot reçues:", data);
+            const logDiv = document.getElementById('json-log');
+            if (logDiv) {
+                logDiv.textContent = JSON.stringify(data, null, 2);
+            }
+            // Vérifie que lat et lng sont bien des nombres valides
+            if (
+                data &&
+                typeof data.lat === 'number' &&
+                typeof data.lng === 'number' &&
+                !isNaN(data.lat) &&
+                !isNaN(data.lng)
+            ) {
+                updateRobotPosition(data.lat, data.lng);
+            } else {
+                // Si les coordonnées sont invalides, retire le marqueur
+                if (robotMarker) {
+                    map.removeLayer(robotMarker);
+                    robotMarker = null;
+                    robotCentered = false;
+                }
+            }
+        })
+        .catch(error => {
+            console.error("Erreur lors de la récupération de la position du robot:", error);
+        });
+}
+
+// Rafraîchir la position du robot toutes les 2 secondes
+setInterval(fetchRobotPosition, 5000);
+// Appel initial
+fetchRobotPosition();
 
 // Activer le mode dessin
 drawBtn.addEventListener('click', function() {
