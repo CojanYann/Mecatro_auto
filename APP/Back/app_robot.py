@@ -202,21 +202,6 @@ def coordrobot(request):
             robot_position["lng"] = None
         return Response(json.dumps(robot_position), headers={'Content-Type': 'application/json'})
     
-# Stockage temporaire de la zone GPS
-zone_coords = []
-
-@app.route('/api/coordgsp/', methods=['GET', 'POST'])
-def coordgsp(request):
-    global zone_coords
-    if request.method == 'POST':
-        data = request.json
-        if data and "coords" in data:
-            zone_coords = data["coords"]
-            return Response(json.dumps({"status": "ok"}), headers={'Content-Type': 'application/json'})
-        return Response(json.dumps({"status": "error", "message": "coords manquants"}), headers={'Content-Type': 'application/json'}), 400
-    else:
-        return Response(json.dumps({"coords": zone_coords}), headers={'Content-Type': 'application/json'})
-
 # --- Lancer le serveur ---
 def start_server():
     try:
