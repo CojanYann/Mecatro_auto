@@ -112,6 +112,7 @@ def customcharacter():
     
 greeting()    
 customcharacter()
+print("ok")
 lcd.move_to(0,0)
 lcd.putstr("Custom Character")
 lcd.move_to(0,1)

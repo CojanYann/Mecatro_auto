@@ -30,11 +30,11 @@ def mesure_distance(trig=15, echo=14):
     return distance_cm
 
 # Boucle principale
-# while True:
-#     dist = mesure_distance()
-#     if dist is not None:
-#         print(dist)
-#         print("Distance: {:.2f} cm".format(dist))
-#     else:
-#         print("Distance non détectée.")
-#     sleep(1)
+while True:
+    dist = mesure_distance()
+    if dist is not None:
+        print(dist)
+        print("Distance: {:.2f} cm".format(dist))
+    else:
+        print("Distance non détectée.")
+    sleep(1)

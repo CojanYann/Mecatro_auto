@@ -162,9 +162,10 @@ class LcdApi:
         self.move_to(self.cursor_x, self.cursor_y)
 
     def hal_backlight_on(self):
-        # Allows the hal layer to turn the backlight on.
-        # If desired, a derived HAL class will implement this function.
-        pass
+    # Force le rétroéclairage à s'activer
+        byte = 1 << SHIFT_BACKLIGHT
+        self.i2c.writeto(self.i2c_addr, bytes([byte]))
+        gc.collect()
 
     def hal_backlight_off(self):
         # Allows the hal layer to turn the backlight off.

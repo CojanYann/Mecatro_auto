@@ -3,6 +3,7 @@ import gc
 
 from lcd_api import LcdApi
 from machine import I2C
+import machine
 
 # PCF8574 pin definitions
 MASK_RS = 0x01       # P0
@@ -16,8 +17,9 @@ class I2cLcd(LcdApi):
     
     #Implements a HD44780 character LCD connected via PCF8574 on I2C
 
-    def __init__(self, i2c, i2c_addr, num_lines, num_columns):
-        self.i2c = i2c
+    def __init__(self, i2c_addr=39, num_lines=2, num_columns=16, sda_pin=4, scl_pin=5):
+        self.i2c = I2C(0, sda=machine.Pin(sda_pin), scl=machine.Pin(scl_pin), freq=400000)
+        self.backlight = True
         self.i2c_addr = i2c_addr
         self.i2c.writeto(self.i2c_addr, bytes([0]))
         utime.sleep_ms(20)   # Allow LCD time to powerup
@@ -37,6 +39,13 @@ class I2cLcd(LcdApi):
             cmd |= self.LCD_FUNCTION_2LINES
         self.hal_write_command(cmd)
         gc.collect()
+    
+    def is_connected(self):
+        try:
+            self.clear()
+            return True
+        except Exception:
+            return False
 
     def hal_write_init_nibble(self, nibble):
         # Writes an initialization nibble to the LCD.

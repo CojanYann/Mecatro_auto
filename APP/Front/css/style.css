@@ -1048,3 +1048,9 @@ body {
     white-space: pre-wrap;
     word-wrap: break-word;
 }
+
+.robot-point-icon {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+}

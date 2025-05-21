@@ -3,7 +3,7 @@ import utime
 #from test import lecture_det_metaux
 from mouvements import *
 from lecture_ultrason import *
-from BIBLI import depart_ok
+from depart_ok import depart_ok
 import machine
 import time
 

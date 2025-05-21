@@ -11,6 +11,6 @@ def init_lcd(I2C_ADDR = 39, I2C_NUM_ROWS = 2, I2C_NUM_COLS = 16, sda_pin=4, scl_
     return lcd
 
 
-# lcd = init_lcd()
-# lcd.move_to(0,0)
-# lcd.putstr("Custom Character")
+lcd = init_lcd()
+lcd.move_to(0,0)
+lcd.putstr("Custom Character")

@@ -35,14 +35,12 @@ let polygon = null;
 let robotMarker = null;
 let robotCentered = false; // Pour centrer la carte une seule fois
 
-// Icône rouge pour le robot
-const robotIcon = L.icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-    shadowSize: [41, 41]
+// Icône point rouge pour le robot
+const robotIcon = L.divIcon({
+    className: 'robot-point-icon',
+    html: '<svg width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="8" fill="#eb0503" stroke="#fff" stroke-width="3"/></svg>',
+    iconSize: [22, 22],
+    iconAnchor: [11, 11]
 });
 
 // Boutons
