@@ -1,7 +1,6 @@
 from micropyGPS import MicropyGPS
 import machine
 import utime
-from depart_ok import depart_ok
 
 class GPS:
     def __init__(self, uart_id=0, baudrate=9600, tx_pin=0, rx_pin=1):

@@ -66,10 +66,10 @@ def init_ecran_lcd():
             return lcd_device
         else:
             print("Erreur de connexion LCD")
-            return True
+            return False
     except Exception as e:
         print(f"Erreur lors de l'initialisation du LCD: {e}")
-        return True
+        return False
 
 def init_gps(max_attempts=30, delay=1):
     gps_device = GPS()

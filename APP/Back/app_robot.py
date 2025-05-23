@@ -4,13 +4,11 @@ import network
 import machine
 import time
 import json
-from lcd_api import LcdApi
-from pico_i2c_lcd import I2cLcd
-from depart_ok import depart_ok
 import socket
+import gc
 
 # --- Configuration LCD ---
-GPS, LCD, COMPAS, C_OBSTACLE = depart_ok()
+# GPS, LCD, COMPAS, C_OBSTACLE = depart_ok()
 
 LCD = False
 # --- Connexion Wi-Fi ---
@@ -81,6 +79,14 @@ except Exception:
 # Fonction qui serait appelée en mode auto (simulation)
 def auto_mode():
     print("Mode automatique activé - Le robot fonctionne de manière autonome")
+    from depart_ok import depart_ok
+    print("test depart")
+    # Initialisation des capteurs en mode local, pas global
+    capteurs = depart_ok()
+    import gc
+    del capteurs  # Libère la référence aux objets capteurs
+    gc.collect()  # Force le garbage collector
+    print("Mémoire libérée après initialisation des capteurs")
     # Ici vous ajouteriez le code pour le comportement autonome
     # Par exemple, la détection et le ramassage de déchets
 
@@ -88,7 +94,7 @@ def auto_mode():
 @app.route('/index.html')
 def index(request):
     try:
-        with open('index.html', 'r') as file:
+        with open('./index.html', 'r') as file:
             return file.read(), 200, {'Content-Type': 'text/html'}
     except:
         return "Fichier index.html non trouvé", 404
@@ -96,7 +102,7 @@ def index(request):
 @app.route('/map.html')
 def map_html(request):
     try:
-        with open('map.html', 'r') as file:
+        with open('./map.html', 'r') as file:
             return file.read(), 200, {'Content-Type': 'text/html'}
     except:
         return "Fichier map.html non trouvé", 404
@@ -104,7 +110,7 @@ def map_html(request):
 @app.route('/css/style.css')
 def css(request):
     try:
-        with open('css/style.css', 'r') as file:
+        with open('./css/style.css', 'r') as file:
             return file.read(), 200, {'Content-Type': 'text/css'}
     except:
         return "Fichier CSS non trouvé", 404
@@ -112,7 +118,7 @@ def css(request):
 @app.route('/js/main.js')
 def js(request):
     try:
-        with open('js/main.js', 'r') as file:
+        with open('./js/main.js', 'r') as file:
             return file.read(), 200, {'Content-Type': 'text/javascript'}
     except:
         return "Fichier JavaScript non trouvé", 404
@@ -120,7 +126,7 @@ def js(request):
 @app.route('/js/map.js')
 def js_map(request):
     try:
-        with open('js/map.js', 'r') as file:
+        with open('./js/map.js', 'r') as file:
             return file.read(), 200, {'Content-Type': 'text/javascript'}
     except:
         return "Fichier map.js non trouvé", 404
@@ -205,7 +211,7 @@ def coordrobot(request):
     
 gps_coords = {"coords": []}
 
-@app.route('/api/coordgsp/', methods=['GET', 'POST'])
+@app.route('/api/coordgps/', methods=['GET', 'POST'])
 def coordgsp(request):
     global gps_coords
     if request.method == 'POST':
@@ -230,6 +236,7 @@ def start_server():
         if LCD:
             LCD.clear()
             LCD.putstr("Erreur serveur")
+
 
 if __name__ == "__main__":
     start_server()

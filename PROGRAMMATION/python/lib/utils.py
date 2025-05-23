@@ -8,13 +8,13 @@ def i2cscan(sda=8, scl=9):
 
 # Définition des points GPS qui forment le polygone (dans l'ordre)
 #morlaix-carhaix-stBrieux-Vannes-Quimper
-# polygon_points = [
-#     (48.602725, -3.834250),
-#     (48.291210, -3.583421),
-#     (48.507350, -2.793577),
-#     (47.701964, -2.702852),
-#     (47.999214, -4.149120)
-# ]
+polygon_points = [
+    (48.602725, -3.834250),
+    (48.291210, -3.583421),
+    (48.507350, -2.793577),
+    (47.701964, -2.702852),
+    (47.999214, -4.149120)
+]
 
 # Calculer la distance entre deux points GPS
 def distance(point1, point2):
@@ -84,3 +84,6 @@ def is_point_in_polygon(lat, lon, polygon):
         p1x, p1y = p2x, p2y
 
     return inside
+
+if __name__ == "__main__":
+    print(is_point_in_polygon(47, 2, polygon_points))

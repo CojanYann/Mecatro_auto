@@ -18,6 +18,11 @@ function addJsonLogEntry(action, description) {
     jsonLogContainer.textContent = JSON.stringify(jsonLogData, null, 2);
 }
 
+// Fonction pour afficher les logs dans la console
+function addLogEntry(message) {
+    console.log(message);
+    // Vous pouvez aussi l'afficher dans un div si besoin
+}
 
 // Fonction pour envoyer une commande et afficher dans le terminal
 function executeAction(action, description) {
