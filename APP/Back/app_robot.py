@@ -202,6 +202,19 @@ def coordrobot(request):
             robot_position["lng"] = None
         return Response(json.dumps(robot_position), headers={'Content-Type': 'application/json'})
     
+gps_coords = {"coords": []}
+
+@app.route('/api/coordgsp/', methods=['GET', 'POST'])
+def coordgsp(request):
+    global gps_coords
+    if request.method == 'POST':
+        data = request.json
+        if data and "coords" in data:
+            gps_coords["coords"] = data["coords"]
+        return Response(json.dumps({"status": "ok"}), headers={'Content-Type': 'application/json'})
+    else:
+        return Response(json.dumps(gps_coords), headers={'Content-Type': 'application/json'})
+
 # --- Lancer le serveur ---
 def start_server():
     try:
