@@ -12,6 +12,7 @@ import socket
 # --- Configuration LCD ---
 GPS, LCD, COMPAS, C_OBSTACLE = depart_ok()
 
+LCD = False
 # --- Connexion Wi-Fi ---
 def connect_wifi(ssid, password):
     wlan = network.WLAN(network.STA_IF)

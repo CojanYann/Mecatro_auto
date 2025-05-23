@@ -1,55 +1,46 @@
 from bmm150 import *
-from time import *
+from time import sleep
+import machine
 
-print("Démarrage du programme...")
-sleep(1)  # Laissez le capteur s'initialiser
-
-def initialiser_compas():
-
-    # Test avec différentes adresses possibles
-    addresses = [0x13, 0x10, 0x11, 0x12]  # Essayer d'abord l'adresse 19 (0x13)
-    address_names = {
-        0x10: "ADDRESS_0 (CSB:0 SDO:0)",
-        0x11: "ADDRESS_1 (CSB:0 SDO:1)",
-        0x12: "ADDRESS_2 (CSB:1 SDO:0)",
-        0x13: "ADDRESS_3 (CSB:1 SDO:1) par défaut"
-    }
-    
-    for addr in addresses:
+class CompasNumerique:
+    def __init__(self, sda_pin=2, scl_pin=3, addr=0x13, i2c_id=1):
         try:
-            print(f"Tentative avec l'adresse {addr} ({address_names.get(addr, 'inconnue')})")
-            compas = bmm150_I2C(sdaPin=8, sclPin=9, addr=addr)
-            print(f"Initialisation réussie avec l'adresse {addr}!")
-            return compas
+            # Vérifie que le compas est bien détecté
+            i2c = machine.I2C(i2c_id, sda=machine.Pin(sda_pin), scl=machine.Pin(scl_pin), freq=400000)
+            found = i2c.scan()
+            if addr not in found:
+                raise Exception(f"Compas non détecté à l'adresse {hex(addr)}. Adresses trouvées: {found}")
+            # Utilise le constructeur de la lib bmm150
+            self.compas = bmm150_I2C(sdaPin=sda_pin, sclPin=scl_pin, addr=addr)
+            print(f"Compas initialisé à l'adresse {hex(addr)}")
         except Exception as e:
-            print(f"Échec avec l'adresse {addr}: {e}")
-    
-    print("Impossible d'initialiser le compas avec aucune adresse.")
-    return None
+            print("Erreur d'initialisation du compas:", e)
+            self.compas = None
 
-def lecture_cap(compas):
-    try:
-        if compas is None:
+    def is_connected(self):
+        return self.compas is not None
+
+    def lire_cap(self):
+        if self.compas is None:
             return None
-            
-        degree = compas.get_compass_degree()
-        lectureCap = degree - 90
-        if lectureCap < 0:
-            lectureCap = lectureCap + 360
-        return lectureCap
-    except Exception as e:
-        print(f"Erreur lors de la lecture du cap: {e}")
-        return None
+        try:
+            degree = self.compas.get_compass_degree()
+            lectureCap = degree - 90
+            if lectureCap < 0:
+                lectureCap += 360
+            return lectureCap
+        except Exception as e:
+            print("Erreur lors de la lecture du cap:", e)
+            return None
 
-# Programme principal
-try:
-    # Initialisation du compas
-    compasNumerique = initialiser_compas()
-    
-    if compasNumerique is not None:
-        # Lecture du cap en boucle
+# Exemple d'utilisation
+if __name__ == "__main__":
+    print("Démarrage du programme...")
+    sleep(1)
+    compas = CompasNumerique(sda_pin=2, scl_pin=3, addr=0x13, i2c_id=1)
+    if compas.is_connected():
         for i in range(20):
-            cap = lecture_cap(compasNumerique)
+            cap = compas.lire_cap()
             if cap is not None:
                 print("Cap:", cap, "degrés")
             else:
@@ -57,6 +48,4 @@ try:
             sleep(2)
     else:
         print("Impossible de continuer sans compas initialisé.")
-except Exception as e:
-    print(f"Erreur générale: {e}")
 

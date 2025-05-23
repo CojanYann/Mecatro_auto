@@ -1,9 +1,11 @@
 from machine import Pin, ADC, time_pulse_us
 import utime
 #from test import lecture_det_metaux
-from mouvements import *
-from lecture_ultrason import *
+from deplacements import Moteur, RobotMoteurs
 from depart_ok import depart_ok
+from utils import is_point_in_polygon, find_closest_point_polygon, calculate_cap
+from cycle_evite_obstacle import cycle_evitement
+from time import sleep
 import machine
 import time
 
@@ -14,6 +16,10 @@ METAL_DETECTOR_PIN = 26  # Pin pour le détecteur de métaux
 # Variable pour suivre l'état de détection
 metal_detected = False
 
+# Initialisation des capteurs
+CapteurGps, EcranLCD, Compas, CapteurObstacle = depart_ok()
+
+RobotMoteurs = RobotMoteurs()
 # Fonction de callback pour l'interruption
 def metal_detection_callback(pin):
     global metal_detected
@@ -30,14 +36,11 @@ detector_pin.irq(trigger=machine.Pin.IRQ_RISING, handler=metal_detection_callbac
 def collect_metal():
     print("Démarrage du cycle de ramassage")
     # Code pour activer les moteurs, ramasser le métal, etc.
-    av()
     sleep(3)
-    stop()
-    time.sleep(1)  # Simulation du temps de ramassage
     print("Fin du cycle de ramassage")
     
 # Boucle principale
-def main():
+def main(CapteurGps, EcranLCD, Compas, CapteurObstacle, polygone, RobotMoteurs):
     global metal_detected
     
     print("Démarrage du robot ramasseur de déchets")
@@ -51,160 +54,58 @@ def main():
                 metal_detected = False  # Réinitialiser l'état
             # Autres tâches du robot (déplacement, etc.)
             time.sleep(0.1)  # Petit délai pour éviter de surcharger le CPU
-            dist = mesure_distance()
-            
-            # Gestion des obstacles
-            if dist < 5:
-                print(f"Obstacle proche: {dist:.1f} cm")
-                stop()
-                sleep(1)
-                arr()  # Recule
-                sleep(1)
-                stop()
-            
-            # Condition d'arrêt
-            if dist < 1:
-                print("Obstacle trop proche, arrêt du programme")
-                stop()
-                break
+            longitude, latitude = CapteurGps.read()
+            distance = CapteurObstacle.mesure_distance()
+            is_point_in_polygon = is_point_in_polygon(latitude, longitude, polygone)
+            if distance < 10:
+                print("Obstacle détecté à moins de 10 cm")
+                cycle_evitement(CapteurObstacle, RobotMoteurs)
+
+            if not is_point_in_polygon:
+                print("Hors du polygone, retour au point de départ")
+                closest_point = find_closest_point_polygon(latitude, longitude, polygone)
+                cap_retour = calculate_cap(latitude, longitude, closest_point[0], closest_point[1])
+                print("Cap de retour:", cap_retour)
+                
+                # Lecture du cap actuel
+                cap_actuel = Compas.lire_cap()
+                if cap_actuel is not None:
+                    # Calcul de la différence d'angle [-180, 180]
+                    diff = (cap_retour - cap_actuel + 540) % 360 - 180
+                    seuil_alignement = 10  # degrés de tolérance
+
+                    if abs(diff) <= seuil_alignement:
+                        print("Aligné, j'avance")
+                        RobotMoteurs.avancer()
+                    elif diff > 0:
+                        print("Tourner à gauche")
+                        RobotMoteurs.gauche()
+                    else:
+                        print("Tourner à droite")
+                        RobotMoteurs.droite()
+                else:
+                    print("Impossible de lire le cap, arrêt")
+                    RobotMoteurs.stop()
             else:
-                print(dist)
-            
-            # Déplacement normal
-            av()
-            sleep(0.5)
-            stop()
-            sleep(0.1) 
+                RobotMoteurs.avancer()
+                pass
+
         
     except KeyboardInterrupt:
         print("Programme arrêté par l'utilisateur")
     finally:
-        stop()
+        RobotMoteurs.stop()
         print("Moteurs arrêtés")
 
-main()
-    
-# from micropyGPS import MicropyGPS
-# from bmm150 import *
-# from lcd_api import LcdApi
-# from pico_i2c_lcd import I2cLcd
-# 
-# from time import *
-# from math import *
-# from utime import sleep
-# from machine import Pin, PWM
-# 
-# sleep(1)  # Laissez les capteurs s'initialiser
-# 
-# from lecture_compas_num import *
-# from lecture_detecteur_met import *
-# from lecture_gps_fct import *
+if __name__ == "__main__":
+    main()
 
 
 
-# from lecture_lcd import *
-# #from mouvements import *
-# from utils import *
-# from mouvements import *
-# from lecture_ultrason import *
-# from lecture_detecteur_met import *
-# 
-# vitesse(60000)
-# while True:
-#     met = lecture_det_metaux()
-#     dist = mesure_distance(trig=15, echo=14)
-#     print(met)
-#     if met:
-#         print("metal!!!!")
-#         stop()
-#         sleep(2)
-#     if dist < 5 :
-#         print("dis: ", dist)
-#         stop()
-#         sleep(1)
-#         arr()
-#         stop()
-#     if dist <1:
-#         stop()
-#         break
-#     stop()
-#     sleep(0.15)
-# stop()
-      
-
-##########################################GPS#####################################
-# print("start")
-# uart, gps, satellite_bool = init_gps()
-# 
-# lcd = init_lcd()
-# 
-# polygon_in = [
-#     (47.650873, -2.783410),
-#     (47.649930, -2.783383),
-#     (47.650364, -2.781688),
-#     (47.650892, -2.782289)
-# ]
-# 
-# polygon_out = [
-#     (47.650913, -2.782998),
-#     (47.651112, -2.782009),
-#     (47.651327, -2.783151),
-#     (47.651469, -2.782360)
-#     ]
-# 
-# for i in range(20):
-#     lcd.clear()
-#     print("lecture")
-#     coord = lecture_gps(gps, uart, satellite_bool)
-#     if "GPS" not in coord:
-#         coord_str_lat = str(coord[0])
-#         coord_str_lon = str(coord[1])
-#         lat = float(coord[0])
-#         lon = float(coord[1])
-#         print("lat ", lat, " lon ", lon)
-#         lcd.move_to(0,0)
-#         lcd.putstr(coord_str_lat)
-#         lcd.move_to(0,1)
-#         lcd.putstr(coord_str_lon)
-#         inside = is_point_in_polygon(lat, lon, polygon_out)
-#         sleep(1)
-#         
-#         if inside:
-#             lcd.move_to(0,1)
-#             lcd.putstr("Dedans")
-#         else:
-#             lcd.move_to(0,1)
-#             lcd.putstr("Retour en zone")
-#             sleep(1)
-#             clos_pt = find_closest_point_polygon(lat, lon, polygon_out)
-#             print("point retour: ", clos_pt)
-#             cap_retour = calculate_cap(lat, lon, clos_pt[0], clos_pt[1])
-#             lcd.clear()
-#             lcd.move_to(0,1)
-#             lcd.putstr(str(cap_retour))
-#         
-#     else:
-#         print("lat ", coord)
-#         lcd.move_to(0,0)
-#         lcd.putstr(coord)
-#         print("recherche satellite ...")
-#         i=0
-#         while ("GPS" in coord) and i<=60:
-#             coord = lecture_gps(gps, uart, satellite_bool)
-#             i += 1
-#             sleep(1)
-#         print("fin de recherche")
-#         
-#     utime.sleep(1.5)
-#     #is_point_in_polygon()
-# print("fin")
-    
 
 
-        
-        
-    
-       
-        
 
-    
+
+
+
+

@@ -1,40 +1,27 @@
 from machine import Pin, time_pulse_us
 from time import sleep
 
-# Configuration des broches
+class CapteurUltrason:
+    def __init__(self, trig=7, echo=6):
+        self.TRIG = Pin(trig, Pin.OUT)
+        self.ECHO = Pin(echo, Pin.IN)
 
+    def mesure_distance(self):
+        self.TRIG.value(0)
+        sleep(0.002)
+        self.TRIG.value(1)
+        sleep(0.00001)
+        self.TRIG.value(0)
+        try:
+            duration = time_pulse_us(self.ECHO, 1, 30000)
+        except OSError as e:
+            print("Erreur de mesure:", e)
+            return None
+        distance_cm = (duration / 2) / 29.1
+        return distance_cm
 
-def mesure_distance(trig=15, echo=14):
+    def is_connected(self):
+        """Retourne True si le capteur répond, False sinon."""
+        dist = self.mesure_distance()
+        return dist is not None and dist > 0.01
     
-    TRIG = Pin(trig, Pin.OUT)  # par exemple GPIO3
-    ECHO = Pin(echo, Pin.IN)   # par exemple GPIO2
-
-    # S'assurer que le TRIG est bas
-    TRIG.value(0)
-    sleep(0.002)
-    
-    # Envoyer une impulsion de 10 µs sur TRIG
-    TRIG.value(1)
-    sleep(0.00001)
-    TRIG.value(0)
-    
-    # Mesurer la durée de l'impulsion sur ECHO (en µs)
-    try:
-        duration = time_pulse_us(ECHO, 1, 30000)  # timeout à 30 ms
-    except OSError as e:
-        print("Erreur de mesure:", e)
-        return None
-
-    # Calcul de la distance (le son va-retour → divisé par 2)
-    distance_cm = (duration / 2) / 29.1
-    return distance_cm
-
-# Boucle principale
-while True:
-    dist = mesure_distance()
-    if dist is not None:
-        print(dist)
-        print("Distance: {:.2f} cm".format(dist))
-    else:
-        print("Distance non détectée.")
-    sleep(1)

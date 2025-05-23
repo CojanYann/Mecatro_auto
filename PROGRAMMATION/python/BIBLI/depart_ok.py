@@ -1,4 +1,6 @@
 from lecture_gps_fct import GPS
+from lecture_ultrason import CapteurUltrason
+from lecture_compas_num import CompasNumerique
 from pico_i2c_lcd import I2cLcd
 from time import sleep
 
@@ -21,12 +23,39 @@ def all_capteurs(status_list):
     return all(status_list)
 
 def init_capteur_obstacle():
-    # Placeholder pour l'initialisation réelle
-    return True
+    capteur = CapteurUltrason(trig=7, echo=6)
+
+    if capteur.is_connected():
+        sleep(0.5)
+        print("Capteur initialisé avec succès")
+        dist = capteur.mesure_distance()
+        if dist is not None:
+            print("Distance: {:.2f} cm".format(dist))
+        else:
+            print("Distance non détectée.")
+        return capteur
+    else:
+        print("Capteur obstacle non connecté.")
+        return False
 
 def init_capteur_compas():
-    # Placeholder pour l'initialisation réelle
-    return True
+    try:
+        Compas = CompasNumerique(sda_pin=2, scl_pin=3, addr=0x13, i2c_id=1)
+        if Compas.is_connected():
+            sleep(0.3)
+            print("Compas initialisé avec succès")
+            lectureCap = Compas.lire_cap()
+            if lectureCap is not None:
+                print("Lecture du cap:", lectureCap)
+            else:
+                print("Erreur de lecture du cap")
+            return Compas
+        else:
+            print("Erreur de connexion au compas")
+            return False
+    except Exception as e:
+        print(f"Erreur lors de l'initialisation du Compas: {e}")
+        return False
 
 def init_ecran_lcd():
     try:
@@ -37,10 +66,10 @@ def init_ecran_lcd():
             return lcd_device
         else:
             print("Erreur de connexion LCD")
-            return False
+            return True
     except Exception as e:
         print(f"Erreur lors de l'initialisation du LCD: {e}")
-        return False
+        return True
 
 def init_gps(max_attempts=30, delay=1):
     gps_device = GPS()
