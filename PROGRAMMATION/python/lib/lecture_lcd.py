@@ -6,24 +6,25 @@ from pico_i2c_lcd import I2cLcd
 
 class LCD:
     def __init__(self, I2C_ADDR=39, I2C_NUM_ROWS=2, I2C_NUM_COLS=16, sda_pin=4, scl_pin=5):
-        i2c = I2C(0, sda=machine.Pin(sda_pin), scl=machine.Pin(scl_pin), freq=400000)
-        self.lcd = I2cLcd(i2c, I2C_ADDR, I2C_NUM_ROWS, I2C_NUM_COLS)
-
+        # Correction : passer directement les paramètres au constructeur I2cLcd
+        # Le constructeur I2cLcd crée lui-même l'objet I2C en interne
+        self.lcd = I2cLcd(I2C_ADDR, I2C_NUM_ROWS, I2C_NUM_COLS, sda_pin, scl_pin)
+    
     def clear(self):
         self.lcd.clear()
-
+    
     def move_to(self, col, row):
         self.lcd.move_to(col, row)
-
+    
     def putstr(self, string):
         self.lcd.putstr(string)
-
+    
     def display_message(self, message, col=0, row=0, clear_first=True):
         if clear_first:
             self.clear()
         self.move_to(col, row)
         self.putstr(message)
-
+    
     def is_connected(self):
         try:
             self.clear()
@@ -34,4 +35,8 @@ class LCD:
 # Exemple d'utilisation :
 if __name__ == "__main__":
     lcd = LCD()
-    lcd.display_message("Custom Character")
+    lcd.display_message("Hello World!")
+    
+    # Ou avec des paramètres personnalisés :
+    # lcd = LCD(I2C_ADDR=0x27, I2C_NUM_ROWS=4, I2C_NUM_COLS=20, sda_pin=0, scl_pin=1)
+    # lcd.display_message("Custom setup")

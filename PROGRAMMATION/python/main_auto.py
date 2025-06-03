@@ -1,13 +1,15 @@
 from machine import Pin, ADC, time_pulse_us
 import utime
 #from test import lecture_det_metaux
-from deplacements import Moteur, RobotMoteurs
+from deplacements import Moteur, RobotMoteurs, MoteurPasAPas
 from depart_ok import depart_ok
 from utils import is_point_in_polygon, find_closest_point_polygon, calculate_cap
 from cycle_evite_obstacle import cycle_evitement
+from cycle_rammassage import cycle_rammassage
 from time import sleep
 import machine
 import time
+
 
 # Définition des pins
 METAL_DETECTOR_PIN = 26  # Pin pour le détecteur de métaux
@@ -30,8 +32,10 @@ if not result:
     CapteurGps = EcranLCD = Compas = CapteurObstacle = None
 else:
     CapteurGps, EcranLCD, Compas, CapteurObstacle = result
-    RobotMoteurs = RobotMoteurs()
 
+RobotMoteurs = RobotMoteurs()
+MoteurPAP = MoteurPasAPas()
+pin_aimant = Pin(20, Pin.OUT)  # Pin pour l'aimant
 
 # Fonction de callback pour l'interruption
 def metal_detection_callback(pin):
@@ -46,14 +50,18 @@ detector_pin.irq(trigger=machine.Pin.IRQ_RISING, handler=metal_detection_callbac
 
 
 # Fonction pour le cycle de ramassage
-def collect_metal():
+def collect_metal(MoteurPAP, RobotMoteurs, pin_aimant):
     print("Démarrage du cycle de ramassage")
-    # Code pour activer les moteurs, ramasser le métal, etc.
-    sleep(3)
-    print("Fin du cycle de ramassage")
+    ramassage = cycle_rammassage(pin_EA=pin_aimant, MoteurPAP=MoteurPAP, RobotMoteurs=RobotMoteurs)
+    if ramassage:
+        print("Ramassage effectué avec succès")
+    else:
+        print("Échec du ramassage")
+    sleep(1)
+    return ramassage
     
 # Boucle principale
-def main(CapteurGps, EcranLCD, Compas, CapteurObstacle, polygone, RobotMoteurs):
+def main_auto(CapteurGps, EcranLCD, Compas, CapteurObstacle, polygone, RobotMoteurs, MoteurPAP, pin_aimant):
 
     global metal_detected
     print("Démarrage du robot ramasseur de déchets")
@@ -62,16 +70,16 @@ def main(CapteurGps, EcranLCD, Compas, CapteurObstacle, polygone, RobotMoteurs):
     while True:
         # Si un métal a été détecté par l'interruption
         if metal_detected:
-            collect_metal()
+            rammassage = collect_metal(MoteurPAP=MoteurPAP, RobotMoteurs=RobotMoteurs, pin_aimant=pin_aimant)
             metal_detected = False  # Réinitialiser l'état
         # Autres tâches du robot (déplacement, etc.)
         time.sleep(0.1)
         longitude, latitude = CapteurGps.read()
-        print("on est la")
+ 
         distance = CapteurObstacle.mesure_distance()
-        print("on est la2", longitude, latitude, polygone)
+
         inside = is_point_in_polygon(lat=latitude, lon=longitude, polygon=polygone)
-        print("on est la3")
+
         if distance < 10:
             print("Obstacle détecté à moins de 10 cm")
             cycle_evitement(CapteurObstacle, RobotMoteurs)
@@ -104,16 +112,9 @@ def main(CapteurGps, EcranLCD, Compas, CapteurObstacle, polygone, RobotMoteurs):
         RobotMoteurs.avancer()
         sleep(0.5)
 
-        
-    # except KeyboardInterrupt:
-    #     print("Programme arrêté par l'utilisateur")
-    # finally:
-    #     if RobotMoteurs:
-    #         RobotMoteurs.stop()
-    #         print("Moteurs arrêtés")
 
 if __name__ == "__main__":
-    main(CapteurGps, EcranLCD, Compas, CapteurObstacle, polygone=polygone, RobotMoteurs=RobotMoteurs)
+    main_auto(CapteurGps, EcranLCD, Compas, CapteurObstacle, polygone=polygone, RobotMoteurs=RobotMoteurs, MoteurPAP=MoteurPAP, pin_aimant=pin_aimant)
 
 
 

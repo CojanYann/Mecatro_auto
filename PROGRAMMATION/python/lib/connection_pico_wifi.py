@@ -6,12 +6,14 @@ import json
 import socket
 import gc
 
-# --- Connexion Wi-Fi ---
-def connect_wifi(ssid, password):
+def connect_wifi(ssid, password, LCD=None):
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
     print(f"Connexion au réseau Wi-Fi: {ssid}")
+    
     wlan.connect(ssid, password)
+    
+    # Attendre la connexion avec timeout
     max_wait = 10
     while max_wait > 0:
         if wlan.isconnected():
@@ -19,12 +21,20 @@ def connect_wifi(ssid, password):
         max_wait -= 1
         print("Attente de connexion...")
         time.sleep(1)
+    
     if wlan.isconnected():
         ip = wlan.ifconfig()[0]
         print(f"Connecté avec l'adresse IP: {ip}")
+        if LCD:
+            LCD.clear()
+            LCD.putstr("IP:")
+            LCD.putstr(ip)
         return ip
     else:
         print("Échec de connexion Wi-Fi")
+        if LCD:
+            LCD.clear()
+            LCD.putstr("WiFi: ECHEC")
         return None
 
 def test_internet():

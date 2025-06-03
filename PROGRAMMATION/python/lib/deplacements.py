@@ -54,13 +54,39 @@ class RobotMoteurs:
         self.moteurA.stop()
         self.moteurB.stop()
 
+class MoteurPasAPas:
+    def __init__(self, in1=16, in2=17, in3=18, in4=19):
+        self.IN1 = Pin(in1, Pin.OUT)
+        self.IN2 = Pin(in2, Pin.OUT)
+        self.IN3 = Pin(in3, Pin.OUT)
+        self.IN4 = Pin(in4, Pin.OUT)
+        self.sequence = [
+            [1, 0, 1, 0],
+            [0, 1, 1, 0],
+            [0, 1, 0, 1],
+            [1, 0, 0, 1] 
+        ]
+
+    def step_motor(self, steps, delay=0.01, direction=1):
+        for _ in range(steps):
+            for step in (self.sequence if direction == 1 else reversed(self.sequence)):
+                self.IN1.value(step[0])
+                self.IN2.value(step[1])
+                self.IN3.value(step[2])
+                self.IN4.value(step[3])
+                sleep(delay)
+
+
 # Exemple d'utilisation
 if __name__ == "__main__":
     robot = RobotMoteurs()
+    Moteurpasapas = MoteurPasAPas()
     robot.vitesse(40000)
     robot.avancer()
+    Moteurpasapas.step_motor(200, delay=0.01, direction=1)
     sleep(2)
     robot.stop()
+    Moteurpasapas.step_motor(200, delay=0.01, direction=0)
     sleep(2)
     robot.reculer()
     sleep(2)

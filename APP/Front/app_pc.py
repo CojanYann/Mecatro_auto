@@ -35,12 +35,11 @@ def send_to_pico(endpoint, data=None, method="POST"):
     try:
         url = f"http://{PICO_IP}:{PICO_PORT}{endpoint}"
         print(f"Envoi vers Pico: {method} {url}")
-        
+        headers = {'Content-Type': 'application/json'}
         if method == "POST":
-            response = requests.post(url, json=data, timeout=5)
+            response = requests.post(url, json=data, headers=headers, timeout=5)
         else:
-            response = requests.get(url, timeout=5)
-        
+            response = requests.get(url, headers=headers, timeout=5)
         return response.json()
     except Exception as e:
         print(f"Erreur communication avec Pico: {e}")
@@ -130,19 +129,38 @@ def move(direction):
             "message": "Le robot ne peut pas être contrôlé manuellement dans ce mode"
         }), 400
 
-# Route pour contrôler la vitesse
+# Route pour contrôler la vitesse (corrigée)
 @app.route('/api/speed', methods=['POST'])
 def set_speed():
     data = request.get_json()
-    speed = data.get('speed', 50) if data else 50
+    print(f"Données reçues du client: {data}")
     
-    print(f"Vitesse réglée à: {speed}%")
+    # Validation et extraction de la vitesse
+    speed = 50  # valeur par défaut
     
-    # Transmettre la commande à la Pico
-    pico_response = send_to_pico('/api/speed', {"speed": speed})
+    if data is not None:
+        if "speed" in data:
+            try:
+                speed = int(data["speed"])
+            except (ValueError, TypeError):
+                speed = 50
+        elif "description" in data:
+            try:
+                speed = int(data["description"])
+            except (ValueError, TypeError):
+                speed = 50
+    
+    # Validation de la plage de vitesse
+    speed = max(0, min(100, speed))
+    
+    # Préparer les données pour la Pico
+    payload = {"speed": speed}
+    
+    print(f"Vitesse validée envoyée à la Pico: {payload}")
+    pico_response = send_to_pico('/api/speed', payload)
     
     return jsonify({
-        "status": "ok", 
+        "status": "ok",
         "speed": speed,
         "pico_response": pico_response
     })

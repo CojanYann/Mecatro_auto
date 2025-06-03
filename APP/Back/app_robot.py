@@ -6,56 +6,20 @@ import time
 import json
 import socket
 import gc
+from lecture_lcd import LCD
+from connection_pico_wifi import connect_wifi, test_internet
+from deplacements import RobotMoteurs, MoteurPasAPas
 
-# --- Configuration LCD ---
-# GPS, LCD, COMPAS, C_OBSTACLE = depart_ok()
+# init capteurs
 
-LCD = False
+LCD = LCD()
+RobotMoteurs = RobotMoteurs()
+MoteurPAP = MoteurPasAPas()
+pin_aimant = Pin(20, Pin.OUT)
+
 # --- Connexion Wi-Fi ---
-def connect_wifi(ssid, password):
-    wlan = network.WLAN(network.STA_IF)
-    wlan.active(True)
-    print(f"Connexion au réseau Wi-Fi: {ssid}")
-    
-    wlan.connect(ssid, password)
-    
-    # Attendre la connexion avec timeout
-    max_wait = 10
-    while max_wait > 0:
-        if wlan.isconnected():
-            break
-        max_wait -= 1
-        print("Attente de connexion...")
-        time.sleep(1)
-    
-    if wlan.isconnected():
-        ip = wlan.ifconfig()[0]
-        print(f"Connecté avec l'adresse IP: {ip}")
-        if LCD:
-            LCD.clear()
-            LCD.putstr("IP:")
-            LCD.putstr(ip)
-        return ip
-    else:
-        print("Échec de connexion Wi-Fi")
-        if LCD:
-            LCD.clear()
-            LCD.putstr("WiFi: ECHEC")
-        return None
 
-def test_internet():
-    try:
-        addr = socket.getaddrinfo('tile.openstreetmap.org', 80)[0][-1]
-        s = socket.socket()
-        s.settimeout(3)
-        s.connect(addr)
-        s.close()
-        print("Connexion Internet OK depuis la Pico")
-    except Exception as e:
-        print("Pas d'accès Internet depuis la Pico:", e)
-
-# Modifier ces paramètres pour votre réseau Wi-Fi
-ip_address = connect_wifi("OnePlus 6", "12345678")
+ip_address = connect_wifi(ssid="OnePlus 6", password="12345678", LCD=LCD)
 test_internet()
 
 # --- Application Web ---
@@ -79,57 +43,13 @@ except Exception:
 # Fonction qui serait appelée en mode auto (simulation)
 def auto_mode():
     print("Mode automatique activé - Le robot fonctionne de manière autonome")
-    from depart_ok import depart_ok
     print("test depart")
     # Initialisation des capteurs en mode local, pas global
-    capteurs = depart_ok()
-    import gc
-    del capteurs  # Libère la référence aux objets capteurs
-    gc.collect()  # Force le garbage collector
+
     print("Mémoire libérée après initialisation des capteurs")
     # Ici vous ajouteriez le code pour le comportement autonome
     # Par exemple, la détection et le ramassage de déchets
 
-# --- Servir les fichiers statiques ---
-@app.route('/index.html')
-def index(request):
-    try:
-        with open('./index.html', 'r') as file:
-            return file.read(), 200, {'Content-Type': 'text/html'}
-    except:
-        return "Fichier index.html non trouvé", 404
-
-@app.route('/map.html')
-def map_html(request):
-    try:
-        with open('./map.html', 'r') as file:
-            return file.read(), 200, {'Content-Type': 'text/html'}
-    except:
-        return "Fichier map.html non trouvé", 404
-
-@app.route('/css/style.css')
-def css(request):
-    try:
-        with open('./css/style.css', 'r') as file:
-            return file.read(), 200, {'Content-Type': 'text/css'}
-    except:
-        return "Fichier CSS non trouvé", 404
-
-@app.route('/js/main.js')
-def js(request):
-    try:
-        with open('./js/main.js', 'r') as file:
-            return file.read(), 200, {'Content-Type': 'text/javascript'}
-    except:
-        return "Fichier JavaScript non trouvé", 404
-
-@app.route('/js/map.js')
-def js_map(request):
-    try:
-        with open('./js/map.js', 'r') as file:
-            return file.read(), 200, {'Content-Type': 'text/javascript'}
-    except:
-        return "Fichier map.js non trouvé", 404
 
 # --- Routes API ---
 @app.route('/api/mode', methods=['GET'])
@@ -167,22 +87,26 @@ def get_status(request):
 
 # Routes de commande de mouvement (simplifiées)
 @app.route('/api/move/<direction>', methods=['POST'])
-def move(request, direction):
+def move(request, direction, RobotMoteurs=RobotMoteurs, LCD=LCD):
     if robot_state["mode"] == "manuel" and robot_state["power"]:
         # Traiter la commande de mouvement
-        print(f"Mouvement: {direction}")
+        direction_methods = {
+            "forward": RobotMoteurs.avancer,
+            "backward": RobotMoteurs.reculer,
+            "left": RobotMoteurs.gauche,
+            "right": RobotMoteurs.droite,
+            "stop": RobotMoteurs.stop
+        }
+        methode = direction_methods.get(direction)
+        if methode:
+            methode()
+            print(f"Mouvement: {direction} {methode.__name__}")
+        else:
+            print(f"Direction inconnue: {direction}")
         # Affichage sur le LCD selon la direction
         if LCD:
             LCD.clear()
-            direction_map = {
-                "forward": "Avancer",
-                "backward": "Reculer",
-                "left": "Gauche",
-                "right": "Droite",
-                "stop": "Stop"
-            }
-            LCD.putstr(direction_map.get(direction, direction))
-        # Ici on ajouterait le code pour contrôler les moteurs
+            LCD.putstr(direction)
         return Response(json.dumps({"status": "ok", "action": f"move_{direction}"}), 'application/json')
     else:
         return Response(json.dumps({"status": "error", "message": "Le robot ne peut pas être contrôlé manuellement dans ce mode"}), 'application/json', 400)
@@ -221,6 +145,32 @@ def coordgsp(request):
         return Response(json.dumps({"status": "ok"}), headers={'Content-Type': 'application/json'})
     else:
         return Response(json.dumps(gps_coords), headers={'Content-Type': 'application/json'})
+
+@app.route('/api/speed', methods=['POST'])
+def set_speed(request, RobotMoteurs=RobotMoteurs, LCD=LCD):
+    # Utilise get_json() pour parser le JSON de façon robuste
+    try:
+        data = request.get_json()
+    except Exception:
+        data = None
+    print(data, "ou rien")
+    # Accepte à la fois {"speed": 65} ou {"description": 65}
+    speed = None
+    if data:
+        if 'speed' in data:
+            speed = data['speed']
+        elif 'description' in data:
+            speed = data['description']
+    if speed is None:
+        speed = 50  # valeur par défaut
+    # Conversion de la vitesse en valeur PWM (0-65535)
+    pwm_value = int((int(speed) / 100) * 65535)
+    RobotMoteurs.vitesse(pwm_value)
+    print(f"Vitesse réglée à: {speed}% (PWM={pwm_value})")
+    if LCD:
+        LCD.clear()
+        LCD.putstr(f"Vitesse: {speed}%")
+    return Response(json.dumps({"status": "ok", "speed": speed}), headers={'Content-Type': 'application/json'})
 
 # --- Lancer le serveur ---
 def start_server():
