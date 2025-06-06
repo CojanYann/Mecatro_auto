@@ -1,6 +1,6 @@
 from microdot import Microdot, Response, Request
 from machine import I2C, Pin
-import network
+import network 
 import machine
 import time
 import json
@@ -10,14 +10,30 @@ from lecture_lcd import LCD
 from connection_pico_wifi import connect_wifi, test_internet
 from deplacements import RobotMoteurs, MoteurPasAPas
 from cycle_rammassage import cycle_rammassage
+from main_auto import main_auto
 
 # init capteurs
-
-LCD = LCD()
+try:
+    LCD = LCD()
+    print("lcd ok")
+except Exception as e:
+    LCD = None
 RobotMoteurs = RobotMoteurs()
 
 MoteurPAP = MoteurPasAPas()
 pin_aimant = Pin(20, Pin.OUT)
+
+# inittialisation données
+
+polygone = [[]]
+gps_coords = {"coords": []}
+robot_speed = 50
+
+# try:
+#     lon, lat = GPS.read()
+#     robot_position = {"lat": lat, "lng": lon}
+# except Exception:
+robot_position = {"lat": None, "lng": None}
 
 # --- Connexion Wi-Fi ---
 
@@ -35,22 +51,8 @@ robot_state = {
     "power": True      # état d'alimentation (on/off)
 }
 
-# Position GPS initiale
-try:
-    lon, lat = GPS.read()
-    robot_position = {"lat": lat, "lng": lon}
-except Exception:
-    robot_position = {"lat": None, "lng": None}
-
-# Fonction qui serait appelée en mode auto (simulation)
-def auto_mode():
-    print("Mode automatique activé - Le robot fonctionne de manière autonome")
-    print("test depart")
-    # Initialisation des capteurs en mode local, pas global
-
-    print("Mémoire libérée après initialisation des capteurs")
-    # Ici vous ajouteriez le code pour le comportement autonome
-    # Par exemple, la détection et le ramassage de déchets
+# Ajout d'une variable globale pour la vitesse
+  # valeur par défaut (en pourcentage)
 
 
 # --- Routes API ---
@@ -62,13 +64,16 @@ def get_mode(request):
 @app.route('/api/mode/auto', methods=['POST'])
 def set_auto(request):
     robot_state["mode"] = "auto"
-    print("🤖 Mode automatique activé")
+    print("Mode automatique activé")
     if LCD:
         LCD.clear()
         LCD.putstr("Mode: AUTO")
     
     # Appel à la fonction de mode automatique (serait remplacé par votre propre logique)
-    auto_mode()
+    if robot_state["mode"] == "auto":
+        print("Démarrage du mode automatique")
+    
+        main_auto(CapteurGps=None, EcranLCD=None, Compas=None, CapteurObstacle=None, polygone=None, RobotMoteurs=None, MoteurPAP=None, pin_aimant=None)
     
     return Response(json.dumps({"status": "ok", "mode": "auto"}))
 
@@ -135,45 +140,56 @@ def coordrobot(request):
             robot_position["lat"] = None
             robot_position["lng"] = None
         return Response(json.dumps(robot_position), headers={'Content-Type': 'application/json'})
-    
-gps_coords = {"coords": []}
 
 @app.route('/api/coordgps/', methods=['GET', 'POST'])
-def coordgsp(request):
+def coordgsp(request, LCD=LCD):
     global gps_coords
+    global polygone
     if request.method == 'POST':
         data = request.json
-        if data and "coords" in data:
+        if data and "coords" in data:   
             gps_coords["coords"] = data["coords"]
+            print(polygone)
+            print("Coordonnées GPS mises à jour:", gps_coords) 
+            polygone = gps_coords["coords"]
+            print("Polygone mis à jour:", polygone)
+            if LCD:
+                LCD.clear()
+                LCD.putstr("GPS: Coordonnées mises à jour")
         return Response(json.dumps({"status": "ok"}), headers={'Content-Type': 'application/json'})
     else:
         return Response(json.dumps(gps_coords), headers={'Content-Type': 'application/json'})
 
-@app.route('/api/speed', methods=['POST'])
+@app.route('/api/speed', methods=['POST', 'GET'])
 def set_speed(request, RobotMoteurs=RobotMoteurs, LCD=LCD):
-    # Utilise get_json() pour parser le JSON de façon robuste
-    try:
-        data = request.get_json()
-    except Exception:
-        data = None
-    print(data, "ou rien")
-    # Accepte à la fois {"speed": 65} ou {"description": 65}
-    speed = None
-    if data:
-        if 'speed' in data:
-            speed = data['speed']
-        elif 'description' in data:
-            speed = data['description']
-    if speed is None:
-        speed = 50  # valeur par défaut
-    # Conversion de la vitesse en valeur PWM (0-65535)
-    pwm_value = int((int(speed) / 100) * 65535)
-    RobotMoteurs.vitesse(pwm_value)
-    print(f"Vitesse réglée à: {speed}% (PWM={pwm_value})")
-    if LCD:
-        LCD.clear()
-        LCD.putstr(f"Vitesse: {speed}%")
-    return Response(json.dumps({"status": "ok", "speed": speed}), headers={'Content-Type': 'application/json'})
+    global robot_speed
+    if request.method == 'POST':
+        try:
+            data = data = request.json
+        except Exception:
+            data = None
+        speed = None
+        if data:
+            if 'speed' in data:
+                speed = data['speed']
+            elif 'description' in data:
+                speed = data['description']
+
+            print(f"Vitesse reçue: {speed}")
+        if speed is None:
+            speed = 50  # valeur par défaut
+            print("speed is none")
+        # Conversion de la vitesse en valeur PWM (0-65535)
+        pwm_value = int((int(speed) / 100) * 65000)
+        RobotMoteurs.vitesse(pwm_value)
+        robot_speed = int(speed)  # Mémorise la dernière vitesse
+        print(f"Vitesse réglée à: {speed}% (PWM={pwm_value})")
+        if LCD:
+            LCD.clear()
+            LCD.putstr(f"Vitesse: {speed}%")
+        return Response(json.dumps({"status": "ok", "speed": speed}), headers={'Content-Type': 'application/json'})
+    else:  # GET
+        return Response(json.dumps({"speed": robot_speed}), headers={'Content-Type': 'application/json'})
 
 @app.route('/action/ramasser', methods=['POST'])
 def api_rammassage(request, pin_aimant=MoteurPAP, pin_ea=pin_aimant, RobotMoteurs=RobotMoteurs):

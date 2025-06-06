@@ -162,10 +162,9 @@ class LcdApi:
         self.move_to(self.cursor_x, self.cursor_y)
 
     def hal_backlight_on(self):
-    # Force le rétroéclairage à s'activer
-        byte = 1 << SHIFT_BACKLIGHT
-        self.i2c.writeto(self.i2c_addr, bytes([byte]))
-        gc.collect()
+        # Allows the hal layer to turn the backlight on.
+        # If desired, a derived HAL class will implement this function.
+        pass
 
     def hal_backlight_off(self):
         # Allows the hal layer to turn the backlight off.
@@ -185,3 +184,52 @@ class LcdApi:
     def hal_sleep_us(self, usecs):
         # Sleep for some time (given in microseconds)
         time.sleep_us(usecs)
+if __name__ == "__main__":
+    from machine import I2C, Pin
+    from pico_i2c_lcd import I2cLcd
+
+    # Adresse I2C de l'écran LCD (modifie si besoin)
+    I2C_ADDR = 0x27
+    LCD_ROWS = 2
+    LCD_COLS = 16
+
+    # Initialisation I2C sur SDA=0, SCL=1
+    i2c = I2C(0, sda=Pin(0), scl=Pin(1), freq=400000)
+
+    # Scan I2C bus and print found addresses
+    devices = i2c.scan()
+    print("I2C devices found:", [hex(device) for device in devices])
+    if I2C_ADDR not in devices:
+        print("WARNING: LCD I2C address 0x{:02X} not found on the bus!".format(I2C_ADDR))
+
+    # Wait for LCD to power up
+    import sys
+    import time as _time
+    _time.sleep(1)
+
+    # Try a direct I2C write to check for low-level communication errors
+    try:
+        i2c.writeto(I2C_ADDR, b'\x00')
+        print("Direct I2C write to 0x{:02X} succeeded.".format(I2C_ADDR))
+    except Exception as e:
+        print("Direct I2C write to 0x{:02X} failed:".format(I2C_ADDR), repr(e))
+        print("This usually means a wiring, address, or power issue.")
+        sys.exit()
+
+    try:
+        lcd = I2cLcd(i2c, I2C_ADDR, LCD_ROWS, LCD_COLS)
+        lcd.putstr("Hello, World!")
+    except Exception as e:
+        import sys
+        import uio
+        print("Failed to initialize I2cLcd:", repr(e))
+        try:
+            sys.print_exception(e)
+        except AttributeError:
+            # For some MicroPython builds, print_exception may not exist
+            print("Exception:", e)
+        print("Troubleshooting tips:")
+        print("- Check LCD contrast (adjust potentiometer on I2C backpack).")
+        print("- Ensure LCD is powered and connected properly.")
+        print("- Verify your LCD uses a PCF8574 I2C backpack compatible with your driver.")
+        print("- Double-check SDA/SCL wiring and pin numbers.")

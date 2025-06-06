@@ -1,129 +1,60 @@
 import utime
-from machine import I2C, Pin
+from time import sleep
+import machine
+from machine import I2C
 from lcd_api import LcdApi
 from pico_i2c_lcd import I2cLcd
 
-
-I2C_ADDR     = 39
-I2C_NUM_ROWS = 2
-I2C_NUM_COLS = 16
-
-i2c = I2C(0, sda=machine.Pin(4), scl=machine.Pin(5), freq=400000)
-lcd = I2cLcd(i2c, I2C_ADDR, I2C_NUM_ROWS, I2C_NUM_COLS)
-
-def greeting():
+class LCD:
+    def __init__(self, i2c_addr=0x27, num_rows=4, num_cols=20, sda_pin=4, scl_pin=5, freq=400000):
+        self.i2c_addr = i2c_addr
+        self.num_rows = num_rows
+        self.num_cols = num_cols
+        self.sda_pin = sda_pin
+        self.scl_pin = scl_pin
+        # Correction : passer directement les paramètres au constructeur I2cLcd
+        # Le constructeur I2cLcd crée lui-même l'objet I2C en interne
+        self.i2c = I2C(0, sda=machine.Pin(sda_pin), scl=machine.Pin(scl_pin), freq=freq)
+        self.lcd = I2cLcd(self.i2c, i2c_addr, num_rows, num_cols)
     
-    lcd.clear()
-    lcd.move_to(5,0)
-    lcd.putstr("Welcome")
-    lcd.move_to(5,1)
-    lcd.putstr("Magneo!")
-    utime.sleep(2)
-    lcd.clear()
-
+    def clear(self):
+        self.lcd.clear()
     
-
-
-def customcharacter():
+    def move_to(self, col, row):
+        self.lcd.move_to(col, row)
     
-  #character      
-  lcd.custom_char(0, bytearray([
-  0x0E,
-  0x0E,
-  0x04,
-  0x1F,
-  0x04,
-  0x0E,
-  0x0A,
-  0x0A
-        
-        ]))
-  
-    #character2      
-  lcd.custom_char(1, bytearray([
-    0x1F,
-  0x15,
-  0x1F,
-  0x1F,
-  0x1F,
-  0x0A,
-  0x0A,
-  0x1B
-        
-        ]))
-  
-  
-  
-  
-  #smiley
-  lcd.custom_char(2, bytearray([
-  0x00,
-  0x00,
-  0x0A,
-  0x00,
-  0x15,
-  0x11,
-  0x0E,
-  0x00
-        
-        ]))
-  
-  #heart
-  lcd.custom_char(3, bytearray([
-   0x00,
-  0x00,
-  0x0A,
-  0x15,
-  0x11,
-  0x0A,
-  0x04,
-  0x00
-        
-        ]))
-  
-      #note
-  lcd.custom_char(4, bytearray([
-   0x01,
-  0x03,
-  0x05,
-  0x09,
-  0x09,
-  0x0B,
-  0x1B,
-  0x18
-        
-        ]))
-    #celcius
-  lcd.custom_char(5, bytearray([
-  0x07,
-  0x05,
-  0x07,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00
-        
-        ]))
-  
+    def putstr(self, string):
+        self.lcd.putstr(string)
+    
+    def display_message(self, message, col=0, row=0, clear_first=True):
+        if clear_first:
+            self.clear()
+        self.move_to(col, row)
+        self.putstr(message)
+    
+    def is_connected(self):
+        try:
+            self.clear()
+            return True
+        except Exception:
+            return False
+
+if __name__ == "__main__":
+    from machine import I2C, Pin
+    i2c = I2C(0, sda=Pin(4), scl=Pin(5), freq=400000)
+    devices = i2c.scan()
+
+    print("I2C devices found:", devices)
+
+    if 0x27 not in devices:
+        print("Erreur : écran LCD non détecté à l’adresse 0x27 !")
+    else:
+        lcd = LCD()
+        lcd.putstr("LCD Test")
+        sleep(2)
+        lcd.clear()
+        lcd.putstr("hello world")
+        sleep(2)
+        lcd.clear()
 
     
-
-    
-greeting()    
-customcharacter()
-print("ok")
-lcd.move_to(0,0)
-lcd.putstr("Custom Character")
-lcd.move_to(0,1)
-lcd.putchar(chr(0))
-lcd.move_to(4,1)
-lcd.putchar(chr(1))
-lcd.move_to(8,1)
-lcd.putchar(chr(2))
-lcd.move_to(12,1)
-lcd.putchar(chr(3))
-lcd.move_to(15,1)
-lcd.putchar(chr(4))
-
-

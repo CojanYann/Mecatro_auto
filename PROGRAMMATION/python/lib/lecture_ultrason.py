@@ -24,4 +24,18 @@ class CapteurUltrason:
         """Retourne True si le capteur répond, False sinon."""
         dist = self.mesure_distance()
         return dist is not None and dist > 0.01
+
+if __name__ == "__main__":
+    capteur = CapteurUltrason()
+    if capteur.is_connected():
+        print("Capteur connecté.")
+        while True:
+            distance = capteur.mesure_distance()
+            if distance is not None:
+                print(f"Distance mesurée: {distance:.2f} cm")
+            else:
+                print("Erreur de mesure.")
+            sleep(1)
+    else:
+        print("Capteur non connecté ou erreur de communication.")
     

@@ -92,13 +92,32 @@ modeButton.addEventListener('click', function() {
     }
 });
 
+// Fonction pour envoyer la vitesse au format JSON POST {speed: valeur}
+function postSpeed(speed) {
+    fetch('/api/speed', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ speed: speed })
+    })
+    .then(response => response.json())
+    .then(data => {
+        addLogEntry(`Vitesse envoyée : ${speed} (réponse: ${JSON.stringify(data)})`);
+    })
+    .catch(error => {
+        addLogEntry(`Erreur lors de l'envoi de la vitesse : ${error}`);
+    });
+}
 
-speedSlider.addEventListener('click', function() {
-    const speed = 100 - speedSlider.value;
-    executeAction('/api/speed', speed);
-});
-
+// Met à jour l'affichage en temps réel
 speedSlider.addEventListener('input', function() {
     const speed = 100 - speedSlider.value;
     speedValue.textContent = `${speed}%`;
+});
+
+// Publie la valeur sur l'API quand on lâche le slider
+speedSlider.addEventListener('change', function() {
+    const speed = 100 - speedSlider.value;
+    postSpeed(speed);
 });

@@ -1,4 +1,5 @@
 from machine import Pin, ADC, time_pulse_us
+from microdot import Microdot, Response, Request
 import utime
 #from test import lecture_det_metaux
 from deplacements import Moteur, RobotMoteurs, MoteurPasAPas
@@ -13,29 +14,29 @@ import time
 
 # Définition des pins
 METAL_DETECTOR_PIN = 26  # Pin pour le détecteur de métaux
-# Autres pins (moteurs, etc.)
-polygone = [
-    (47.571300, -3.072753),
-    (47.571389, -3.072347),
-    (47.571595, -3.071556),
-    (47.571357, -3.071503),
-    (47.571164, -3.072600)
-]
-# Variable pour suivre l'état de détection
-metal_detected = False
+# # Autres pins (moteurs, etc.)
+# polygone = [
+#     (47.571300, -3.072753),
+#     (47.571389, -3.072347),
+#     (47.571595, -3.071556),
+#     (47.571357, -3.071503),
+#     (47.571164, -3.072600)
+# ]
+# # Variable pour suivre l'état de détection
+# metal_detected = False
 
-# Initialisation des capteurs
-result = depart_ok()
-if not result:
-    print("Erreur d'initialisation des capteurs. Arrêt du programme.")
-    RobotMoteurs = None
-    CapteurGps = EcranLCD = Compas = CapteurObstacle = None
-else:
-    CapteurGps, EcranLCD, Compas, CapteurObstacle = result
+# # Initialisation des capteurs
+# result = depart_ok()
+# if not result:
+#     print("Erreur d'initialisation des capteurs. Arrêt du programme.")
+#     RobotMoteurs = None
+#     CapteurGps = EcranLCD = Compas = CapteurObstacle = None
+# else:
+#     CapteurGps, EcranLCD, Compas, CapteurObstacle = result
 
-RobotMoteurs = RobotMoteurs()
-MoteurPAP = MoteurPasAPas()
-pin_aimant = Pin(20, Pin.OUT)  # Pin pour l'aimant
+# RobotMoteurs = RobotMoteurs()
+# MoteurPAP = MoteurPasAPas()
+# pin_aimant = Pin(20, Pin.OUT)  # Pin pour l'aimant
 
 # Fonction de callback pour l'interruption
 def metal_detection_callback(pin):
@@ -62,7 +63,21 @@ def collect_metal(MoteurPAP, RobotMoteurs, pin_aimant):
     
 # Boucle principale
 def main_auto(CapteurGps, EcranLCD, Compas, CapteurObstacle, polygone, RobotMoteurs, MoteurPAP, pin_aimant):
-
+    if not all([CapteurGps, EcranLCD, Compas, CapteurObstacle, RobotMoteurs, MoteurPAP]):
+        import urequests  # MicroPython HTTP requests library
+        while True:
+            print("Un ou plusieurs capteurs/moteurs ne sont pas initialisés. Arrêt du programme.")
+            sleep(2)
+            # ici condition check mmode manuel ou auto
+            try:
+                response = urequests.get("http://192.168.218.235:5000//api/mode")  # Remplace 127.0.0.1 par l'IP de ton serveur si besoin
+                mode = response.json().get("mode")
+                response.close()
+                if mode == "manuel":
+                    print("Mode manuel détecté via API, arrêt de la boucle auto.")
+                    break
+            except Exception as e:
+                print("Erreur lors de la vérification du mode via l'API :", e)
     global metal_detected
     print("Démarrage du robot ramasseur de déchets")
     
