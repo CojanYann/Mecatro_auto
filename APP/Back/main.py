@@ -9,11 +9,13 @@ import gc
 from lecture_lcd import LCD
 from connection_pico_wifi import connect_wifi, test_internet
 from deplacements import RobotMoteurs, MoteurPasAPas
+from cycle_rammassage import cycle_rammassage
 
 # init capteurs
 
 LCD = LCD()
 RobotMoteurs = RobotMoteurs()
+
 MoteurPAP = MoteurPasAPas()
 pin_aimant = Pin(20, Pin.OUT)
 
@@ -90,6 +92,7 @@ def get_status(request):
 def move(request, direction, RobotMoteurs=RobotMoteurs, LCD=LCD):
     if robot_state["mode"] == "manuel" and robot_state["power"]:
         # Traiter la commande de mouvement
+        RobotMoteurs.vitesse(60000)  # Réglage de la vitesse par défaut
         direction_methods = {
             "forward": RobotMoteurs.avancer,
             "backward": RobotMoteurs.reculer,
@@ -171,6 +174,16 @@ def set_speed(request, RobotMoteurs=RobotMoteurs, LCD=LCD):
         LCD.clear()
         LCD.putstr(f"Vitesse: {speed}%")
     return Response(json.dumps({"status": "ok", "speed": speed}), headers={'Content-Type': 'application/json'})
+
+@app.route('/action/ramasser', methods=['POST'])
+def api_rammassage(request, pin_aimant=MoteurPAP, pin_ea=pin_aimant, RobotMoteurs=RobotMoteurs):
+    print("Action: cycle_rammassage déclenchée via /action/ramasser")
+    try:
+        cycle_rammassage(pin_ea, pin_aimant, RobotMoteurs)
+        return Response(json.dumps({"status": "ok", "action": "cycle_rammassage"}), headers={'Content-Type': 'application/json'})
+    except Exception as e:
+        print(f"Erreur lors du cycle_rammassage: {e}")
+        return Response(json.dumps({"status": "error", "message": str(e)}), headers={'Content-Type': 'application/json'}, status_code=500)
 
 # --- Lancer le serveur ---
 def start_server():

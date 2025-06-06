@@ -60,36 +60,88 @@ class MoteurPasAPas:
         self.IN2 = Pin(in2, Pin.OUT)
         self.IN3 = Pin(in3, Pin.OUT)
         self.IN4 = Pin(in4, Pin.OUT)
-        self.sequence = [
-            [1, 0, 1, 0],
-            [0, 1, 1, 0],
-            [0, 1, 0, 1],
-            [1, 0, 0, 1] 
+        
+        # Séquence de pas complet (plus stable)
+        self.sequence_full = [
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1]
         ]
-
-    def step_motor(self, steps, delay=0.01, direction=1):
+        
+        # Séquence de demi-pas (plus de précision mais plus de vibrations)
+        self.sequence_half = [
+            [1, 0, 0, 0],
+            [1, 1, 0, 0],
+            [0, 1, 0, 0],
+            [0, 1, 1, 0],
+            [0, 0, 1, 0],
+            [0, 0, 1, 1],
+            [0, 0, 0, 1],
+            [1, 0, 0, 1]
+        ]
+        
+        # Utiliser la séquence de pas complet par défaut
+        self.sequence = self.sequence_full
+        
+    def set_step_mode(self, mode="full"):
+        """Changer le mode de pas"""
+        if mode == "full":
+            self.sequence = self.sequence_full
+        elif mode == "half":
+            self.sequence = self.sequence_half
+    
+    def step_motor(self, steps, delay=0.005, direction=1):
+        """
+        steps: nombre de pas
+        delay: délai entre chaque pas (en secondes)
+        direction: 1 pour horaire, -1 pour anti-horaire
+        """
+        sequence_to_use = self.sequence if direction == 1 else list(reversed(self.sequence))
+        
         for _ in range(steps):
-            for step in (self.sequence if direction == 1 else reversed(self.sequence)):
+            for step in sequence_to_use:
                 self.IN1.value(step[0])
                 self.IN2.value(step[1])
                 self.IN3.value(step[2])
                 self.IN4.value(step[3])
                 sleep(delay)
+    
+    def stop(self):
+        """Arrêter le moteur et couper l'alimentation"""
+        self.IN1.value(0)
+        self.IN2.value(0)
+        self.IN3.value(0)
+        self.IN4.value(0)
 
 
 # Exemple d'utilisation
 if __name__ == "__main__":
-    robot = RobotMoteurs()
-    Moteurpasapas = MoteurPasAPas()
-    robot.vitesse(40000)
-    robot.avancer()
-    Moteurpasapas.step_motor(200, delay=0.01, direction=1)
-    sleep(2)
-    robot.stop()
-    Moteurpasapas.step_motor(200, delay=0.01, direction=0)
-    sleep(2)
-    robot.reculer()
-    sleep(2)
-    robot.stop()
+    moteur = MoteurPasAPas()
+    
+    print("Test avec pas complet...")
+    moteur.set_step_mode("full")
+    moteur.step_motor(200, delay=0.003, direction=1)
+    sleep(1)
+    
+    print("Test avec demi-pas...")
+    moteur.set_step_mode("full")
+    moteur.step_motor(400, delay=0.003, direction=-1)  # 400 demi-pas = 200 pas complets
+    
+    # Arrêter le moteur
+    moteur.stop()
+
+#    robot = RobotMoteurs()
+#     robot.vitesse(40000)
+#     robot.avancer()
+#    Moteurpasapas.step_motor(200, delay=0.01, direction=1)
+#     sleep(2)
+#     robot.stop()
+#     sleep(2)
+#     robot.reculer()
+#     sleep(2)
+#     robot.gauche()
+#     sleep(2)
+#     robot.stop()
 
 

@@ -23,7 +23,7 @@ gps_coords = {"coords": []}
 robot_position = {"lat": None, "lng": None}
 
 # Configuration pour communiquer avec la Raspberry Pico
-PICO_IP = "192.168.240.240"  # Remplacez par l'IP RÉELLE de votre Pico
+PICO_IP = "192.168.218.240"  # Remplacez par l'IP RÉELLE de votre Pico
 PICO_PORT = 80
 
 # Variables de communication (HTTP uniquement)
