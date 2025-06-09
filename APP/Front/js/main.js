@@ -160,3 +160,67 @@ ipSaveBtn.addEventListener('click', function() {
         ipStatus.style.color = '#e74c3c';
     }
 });
+
+function getPicoIp() {
+    // Récupère l'IP de la Pico depuis le localStorage ou le champ
+    return localStorage.getItem('raspberry_ip') || document.getElementById('ip-input').value.trim();
+}
+
+function updateObstacleDistance() {
+    const picoIp = getPicoIp();
+    if (!picoIp) {
+        const el = document.getElementById('obstacle-distance-front');
+        if (el) el.textContent = '--';
+        return;
+    }
+    fetch(`http://${picoIp}:80/api/distance_obstacle/`)
+        .then(res => res.json())
+        .then(data => {
+            let dist = data.distance;
+            const el = document.getElementById('obstacle-distance-front');
+            if (el) {
+                if (dist !== undefined && dist !== null) {
+                    dist = Math.round(dist * 10) / 10; // Arrondi à 0.1 près
+                    el.textContent = dist + ' cm';
+                } else {
+                    el.textContent = '--';
+                }
+            }
+        })
+        .catch(() => {
+            const el = document.getElementById('obstacle-distance-front');
+            if (el) el.textContent = '??';
+        });
+}
+
+// Fonction pour mettre à jour la détection de métal
+function updateMetalDetection() {
+    const picoIp = getPicoIp();
+    const el = document.getElementById('metal-detect-value');
+    const metalDiv = document.getElementById('metal-detect');
+    if (!picoIp) {
+        if (el) el.textContent = '--';
+        if (metalDiv) metalDiv.classList.remove('metal-detected');
+        return;
+    }
+    fetch(`http://${picoIp}:80/api/metal/`)
+        .then(res => res.json())
+        .then(data => {
+            if (el && metalDiv) {
+                if (data.metal === "metal") {
+                    el.textContent = "Métal détecté";
+                    metalDiv.classList.add('metal-detected');
+                } else {
+                    el.textContent = "Aucun métal";
+                    metalDiv.classList.remove('metal-detected');
+                }
+            }
+        })
+        .catch(() => {
+            if (el) el.textContent = '??';
+            if (metalDiv) metalDiv.classList.remove('metal-detected');
+        });
+}
+
+setInterval(updateObstacleDistance, 1500);
+setInterval(updateMetalDetection, 1000);

@@ -33,7 +33,7 @@ pin_aimant = Pin(20, Pin.OUT)
 polygone = [[]]
 gps_coords = {"coords": []}
 robot_speed = 50
-
+global metal_detected
 # try:
 #     lon, lat = GPS.read()
 #     robot_position = {"lat": lat, "lng": lon}
@@ -85,6 +85,10 @@ def set_auto(request, LCD=ecran_lcd):
                   RobotMoteurs=Robot_moteurs, 
                   MoteurPAP=MoteurPAP, 
                   pin_aimant=pin_aimant)
+        # Libération mémoire explicite après chaque appel à main_auto
+        gc.collect()
+        # del capteur_gps, ecran_lcd, capteur_compas, capteur_obstacle, Robot_moteurs, MoteurPAP, pin_aimant
+        # gc.collect()
     
     return Response(json.dumps({"status": "ok", "mode": "auto"}))
 
@@ -211,9 +215,22 @@ def api_rammassage(request, pin_aimant=MoteurPAP, pin_ea=pin_aimant, RobotMoteur
         print(f"Erreur lors du cycle_rammassage: {e}")
         return Response(json.dumps({"status": "error", "message": str(e)}), headers={'Content-Type': 'application/json'}, status_code=500)
 
-@app.route('/api/ip_raspberry/', methods=['GET'])
-def get_ip_raspberry(request):
-    return Response(json.dumps({"ip": ip_address}), headers={'Content-Type': 'application/json'})
+@app.route('/api/distance_obstacle/', methods=['GET'])
+def get_ip_raspberry(request, capteur = capteur_obstacle):
+    return Response(json.dumps({"distance": capteur.mesure_distance() if capteur else "No Data"}), headers={'Content-Type': 'application/json'})
+
+@app.route('/api/metal/', methods=['GET'])
+def get_ip_raspberry(request, metal = metal_detected):
+    print("Vérification de la présence de métal", metal)
+    return Response(json.dumps({"metal": "metal" if metal else "No metal"}), headers={'Content-Type': 'application/json'})
+
+# Ajout du middleware CORS pour autoriser les requêtes cross-origin
+@app.after_request
+def add_cors_headers(request, response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+    return response
 
 # --- Lancer le serveur ---
 def start_server():
@@ -223,6 +240,7 @@ def start_server():
             ecran_lcd.clear()
             ecran_lcd.putstr("Serveur: ON")
             sleep(0.5)
+            ecran_lcd.clear()
             ecran_lcd.putstr(f"IP: {ip_address} : 80")
         app.run(host="0.0.0.0", port=80)
     except Exception as e:

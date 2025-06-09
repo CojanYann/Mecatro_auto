@@ -1054,3 +1054,18 @@ body {
     border: none !important;
     box-shadow: none !important;
 }
+
+.metal-indicator {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #395791; /* bleu par défaut */
+    border: 3px solid #395791;
+    transition: background 0.3s, border 0.3s;
+    display: inline-block;
+}
+
+.metal-indicator.metal-detected {
+    background: #e74c3c; /* rouge si métal détecté */
+    border-color: #e74c3c;
+}
