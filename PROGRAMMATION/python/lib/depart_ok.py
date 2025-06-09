@@ -1,7 +1,7 @@
 from lecture_gps_fct import GPS
 from lecture_ultrason import CapteurUltrason
 from lecture_compas_num import CompasNumerique
-from pico_i2c_lcd import I2cLcd
+from lecture_lcd import LCD
 from time import sleep
 
 def depart_ok():
@@ -9,14 +9,7 @@ def depart_ok():
     capteur_gps = init_gps()
     capteur_compas = init_capteur_compas()
     ecran_lcd = init_ecran_lcd()
-    if all_capteurs([capteur_obstacle, capteur_gps, capteur_compas, ecran_lcd]):
-        print("Robot prêt à partir")
-        lon, lat = capteur_gps.read()
-        print(lon, lat)
-        return capteur_gps, ecran_lcd, capteur_compas, capteur_obstacle
-    else:
-        print("Robot pas prêt à partir")
-        return False
+    return capteur_gps, ecran_lcd, capteur_compas, capteur_obstacle
 
 def all_capteurs(status_list):
     # Vérifie que tous les capteurs sont True
@@ -59,7 +52,7 @@ def init_capteur_compas():
 
 def init_ecran_lcd():
     try:
-        lcd_device = I2cLcd()
+        lcd_device = LCD()
         if lcd_device.is_connected():
             print("LCD initialisé avec succès")
             lcd_device.putstr("LCD OK")
@@ -71,7 +64,7 @@ def init_ecran_lcd():
         print(f"Erreur lors de l'initialisation du LCD: {e}")
         return False
 
-def init_gps(max_attempts=30, delay=1):
+def init_gps(max_attempts=2, delay=1):
     gps_device = GPS()
     for i in range(max_attempts):
         gps_data = gps_device.read()

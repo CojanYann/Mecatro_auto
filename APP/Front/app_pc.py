@@ -23,7 +23,7 @@ gps_coords = {"coords": []}
 robot_position = {"lat": None, "lng": None}
 
 # Configuration pour communiquer avec la Raspberry Pico
-PICO_IP = "192.168.218.165" #"192.168.218.240"  # Remplacez par l'IP RÉELLE de votre Pico
+PICO_IP = "" #"192.168.218.240"  # Remplacez par l'IP RÉELLE de votre Pico
 PICO_PORT = 80
 
 # Variables de communication (HTTP uniquement)
@@ -248,6 +248,22 @@ def test_pico():
         "pico_response": response,
         "communication_method": "serial" if use_serial else "http"
     })
+
+# --- Route pour modifier dynamiquement l'IP de la Pico ---
+@app.route('/api/set_pico_ip', methods=['POST'])
+def set_pico_ip():
+    global PICO_IP
+    data = request.get_json()
+    if not data or 'ip' not in data:
+        return jsonify({'status': 'error', 'message': 'IP manquante'}), 400
+    ip = data['ip']
+    # Validation simple de l'IP
+    import re
+    if not re.match(r'^\d{1,3}(\.\d{1,3}){3}$', ip):
+        return jsonify({'status': 'error', 'message': 'Format IP invalide'}), 400
+    PICO_IP = ip
+    print(f"Nouvelle IP Pico enregistrée: {PICO_IP}")
+    return jsonify({'status': 'ok', 'ip': PICO_IP})
 
 # Fonction pour maintenir la synchronisation avec la Pico
 def sync_with_pico():

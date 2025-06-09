@@ -121,3 +121,42 @@ speedSlider.addEventListener('change', function() {
     const speed = 100 - speedSlider.value;
     postSpeed(speed);
 });
+
+// Gestion de l'IP Raspberry dynamique
+const ipInput = document.getElementById('ip-input');
+const ipSaveBtn = document.getElementById('ip-save-btn');
+const ipStatus = document.getElementById('ip-status');
+
+// Charger l'IP depuis le localStorage si présente
+window.addEventListener('DOMContentLoaded', function() {
+    const savedIp = localStorage.getItem('raspberry_ip');
+    if (savedIp) {
+        ipInput.value = savedIp;
+    }
+});
+
+ipSaveBtn.addEventListener('click', function() {
+    const ip = ipInput.value.trim();
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) {
+        // Enregistrer localement
+        localStorage.setItem('raspberry_ip', ip);
+        // Envoyer au serveur Flask
+        fetch('/api/set_pico_ip', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ip })
+        })
+        .then(res => res.json())
+        .then(data => {
+            ipStatus.textContent = data.status === 'ok' ? 'IP enregistrée !' : 'Erreur: ' + data.message;
+            ipStatus.style.color = data.status === 'ok' ? '#2ecc71' : '#e74c3c';
+        })
+        .catch(() => {
+            ipStatus.textContent = 'Erreur réseau';
+            ipStatus.style.color = '#e74c3c';
+        });
+    } else {
+        ipStatus.textContent = 'Format IP invalide';
+        ipStatus.style.color = '#e74c3c';
+    }
+});

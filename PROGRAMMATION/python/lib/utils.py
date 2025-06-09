@@ -1,5 +1,6 @@
 from math import sqrt, atan2, degrees
 import machine
+import urequests
 
 
 def i2cscan(sda=8, scl=9):
@@ -84,6 +85,22 @@ def is_point_in_polygon(lat, lon, polygon):
         p1x, p1y = p2x, p2y
 
     return inside
+
+def check_mode_auto(ip="192.168.6.235", port="5000"):
+        # ici condition check mmode manuel ou auto
+    try:
+        rout = f"http://{ip}:{port}/api/mode"
+        response = urequests.get(rout)  # Remplace 127.0.0.1 par l'IP de ton serveur si besoin
+        mode = response.json().get("mode")
+        response.close()
+        if mode == "manuel":
+            print("Mode manuel détecté via API, arrêt de la boucle auto.")
+            return False
+        else:
+            return True
+    except Exception as e:
+        print("Erreur lors de la vérification du mode via l'API :", e)
+
 
 if __name__ == "__main__":
     print(is_point_in_polygon(47, 2, polygon_points))

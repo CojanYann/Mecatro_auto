@@ -3,6 +3,7 @@ from machine import I2C, Pin
 import network 
 import machine
 import time
+from time import sleep
 import json
 import socket
 import gc
@@ -11,14 +12,18 @@ from connection_pico_wifi import connect_wifi, test_internet
 from deplacements import RobotMoteurs, MoteurPasAPas
 from cycle_rammassage import cycle_rammassage
 from main_auto import main_auto
+from depart_ok import depart_ok
 
 # init capteurs
-try:
-    LCD = LCD()
-    print("lcd ok")
-except Exception as e:
-    LCD = None
-RobotMoteurs = RobotMoteurs()
+# try:
+#     LCD = LCD()
+#     print("lcd ok")
+# except Exception as e:
+#     LCD = None
+
+capteur_gps, ecran_lcd, capteur_compas, capteur_obstacle = depart_ok()
+
+Robot_moteurs = RobotMoteurs()
 
 MoteurPAP = MoteurPasAPas()
 pin_aimant = Pin(20, Pin.OUT)
@@ -37,7 +42,7 @@ robot_position = {"lat": None, "lng": None}
 
 # --- Connexion Wi-Fi ---
 
-ip_address = connect_wifi(ssid="OnePlus 6", password="12345678", LCD=LCD)
+ip_address = connect_wifi(ssid="OnePlus 6", password="12345678", LCD=ecran_lcd)
 test_internet()
 
 # --- Application Web ---
@@ -62,7 +67,7 @@ def get_mode(request):
                    headers={'Content-Type': 'application/json'})
 
 @app.route('/api/mode/auto', methods=['POST'])
-def set_auto(request):
+def set_auto(request, LCD=ecran_lcd):
     robot_state["mode"] = "auto"
     print("Mode automatique activé")
     if LCD:
@@ -72,18 +77,24 @@ def set_auto(request):
     # Appel à la fonction de mode automatique (serait remplacé par votre propre logique)
     if robot_state["mode"] == "auto":
         print("Démarrage du mode automatique")
-    
-        main_auto(CapteurGps=None, EcranLCD=None, Compas=None, CapteurObstacle=None, polygone=None, RobotMoteurs=None, MoteurPAP=None, pin_aimant=None)
+        main_auto(CapteurGps=capteur_gps, 
+                  EcranLCD=ecran_lcd, 
+                  Compas=capteur_compas, 
+                  CapteurObstacle=capteur_obstacle, 
+                  polygone=polygone, 
+                  RobotMoteurs=Robot_moteurs, 
+                  MoteurPAP=MoteurPAP, 
+                  pin_aimant=pin_aimant)
     
     return Response(json.dumps({"status": "ok", "mode": "auto"}))
 
 @app.route('/api/mode/manual', methods=['POST'])
-def set_manual(request):
+def set_manual(request, ecran_lcd=ecran_lcd):
     robot_state["mode"] = "manuel"
     print("🔧 Mode manuel activé")
-    if LCD:
-        LCD.clear()
-        LCD.putstr("Mode: MANUEL")
+    if ecran_lcd:
+        ecran_lcd.clear()
+        ecran_lcd.putstr("Mode: MANUEL")
     
     return Response(json.dumps({"status": "ok", "mode": "manuel"}))
 
@@ -94,7 +105,7 @@ def get_status(request):
 
 # Routes de commande de mouvement (simplifiées)
 @app.route('/api/move/<direction>', methods=['POST'])
-def move(request, direction, RobotMoteurs=RobotMoteurs, LCD=LCD):
+def move(request, direction, RobotMoteurs=Robot_moteurs, LCD=ecran_lcd):
     if robot_state["mode"] == "manuel" and robot_state["power"]:
         # Traiter la commande de mouvement
         RobotMoteurs.vitesse(60000)  # Réglage de la vitesse par défaut
@@ -142,7 +153,7 @@ def coordrobot(request):
         return Response(json.dumps(robot_position), headers={'Content-Type': 'application/json'})
 
 @app.route('/api/coordgps/', methods=['GET', 'POST'])
-def coordgsp(request, LCD=LCD):
+def coordgsp(request, LCD=ecran_lcd):
     global gps_coords
     global polygone
     if request.method == 'POST':
@@ -150,18 +161,17 @@ def coordgsp(request, LCD=LCD):
         if data and "coords" in data:   
             gps_coords["coords"] = data["coords"]
             print(polygone)
-            print("Coordonnées GPS mises à jour:", gps_coords) 
             polygone = gps_coords["coords"]
             print("Polygone mis à jour:", polygone)
             if LCD:
                 LCD.clear()
-                LCD.putstr("GPS: Coordonnées mises à jour")
+                LCD.putstr("Polygone mises à jour")
         return Response(json.dumps({"status": "ok"}), headers={'Content-Type': 'application/json'})
     else:
         return Response(json.dumps(gps_coords), headers={'Content-Type': 'application/json'})
 
 @app.route('/api/speed', methods=['POST', 'GET'])
-def set_speed(request, RobotMoteurs=RobotMoteurs, LCD=LCD):
+def set_speed(request, RobotMoteurs=Robot_moteurs, LCD=ecran_lcd):
     global robot_speed
     if request.method == 'POST':
         try:
@@ -192,7 +202,7 @@ def set_speed(request, RobotMoteurs=RobotMoteurs, LCD=LCD):
         return Response(json.dumps({"speed": robot_speed}), headers={'Content-Type': 'application/json'})
 
 @app.route('/action/ramasser', methods=['POST'])
-def api_rammassage(request, pin_aimant=MoteurPAP, pin_ea=pin_aimant, RobotMoteurs=RobotMoteurs):
+def api_rammassage(request, pin_aimant=MoteurPAP, pin_ea=pin_aimant, RobotMoteurs=Robot_moteurs):
     print("Action: cycle_rammassage déclenchée via /action/ramasser")
     try:
         cycle_rammassage(pin_ea, pin_aimant, RobotMoteurs)
@@ -201,20 +211,25 @@ def api_rammassage(request, pin_aimant=MoteurPAP, pin_ea=pin_aimant, RobotMoteur
         print(f"Erreur lors du cycle_rammassage: {e}")
         return Response(json.dumps({"status": "error", "message": str(e)}), headers={'Content-Type': 'application/json'}, status_code=500)
 
+@app.route('/api/ip_raspberry/', methods=['GET'])
+def get_ip_raspberry(request):
+    return Response(json.dumps({"ip": ip_address}), headers={'Content-Type': 'application/json'})
+
 # --- Lancer le serveur ---
 def start_server():
     try:
         print(f"Démarrage du serveur sur http://{ip_address}:80")
-        if LCD:
-            LCD.clear()
-            LCD.putstr("Serveur: ON")
-            LCD.putstr(f"IP: {ip_address}")
+        if ecran_lcd:
+            ecran_lcd.clear()
+            ecran_lcd.putstr("Serveur: ON")
+            sleep(0.5)
+            ecran_lcd.putstr(f"IP: {ip_address} : 80")
         app.run(host="0.0.0.0", port=80)
     except Exception as e:
         print(f"Erreur serveur: {e}")
-        if LCD:
-            LCD.clear()
-            LCD.putstr("Erreur serveur")
+        if ecran_lcd:
+            ecran_lcd.clear()
+            ecran_lcd.putstr("Erreur serveur")
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ from lcd_api import LcdApi
 from pico_i2c_lcd import I2cLcd
 
 class LCD:
-    def __init__(self, i2c_addr=0x27, num_rows=4, num_cols=20, sda_pin=4, scl_pin=5, freq=400000):
+    def __init__(self, i2c_addr=0x27, num_rows=4, num_cols=16, sda_pin=4, scl_pin=5, freq=400000):
         self.i2c_addr = i2c_addr
         self.num_rows = num_rows
         self.num_cols = num_cols

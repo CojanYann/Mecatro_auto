@@ -32,6 +32,18 @@
             <div class="card kpi-card">
                 <div class="section-title">KPI</div>
                 <div class="kpi-container">
+
+
+                    <!-- Ajout du contrôle d'IP Raspberry -->
+                    <div class="card ip-control" style="margin-bottom: 15px;">
+                        <label for="ip-input">IP Raspberry&nbsp;:</label>
+                        <input type="text" id="ip-input" class="ip-input" placeholder="192.168.x.x" style="width: 130px;">
+                        <button id="ip-save-btn" class="button" style="margin-left: 8px;">Enregistrer</button>
+                        <span id="ip-status" style="margin-left: 10px; color: #395791; font-size: 12px;"></span>
+                    </div>
+                    <!-- Fin ajout IP -->
+
+
                     <div class="kpi-item">
                         <span class="kpi-label">Remplissage du bac :</span>
                         <div class="kpi-simulation">
@@ -90,6 +102,7 @@
                     </div>
                 </div>
             </div>
+            
         </div>
         
         <div class="column right-column">
