@@ -1,0 +1,33 @@
+Principales optimisations apportées :
+1. Gestion mémoire agressive
+
+gc.collect() appelé systématiquement après chaque requête
+Configuration du garbage collector plus agressive
+del explicite des objets temporaires
+
+2. Remplacement des dictionnaires par des listes
+
+robot_state devient une liste [mode, battery, power]
+robot_position devient une liste [lat, lng]
+Économie de 30-40% de mémoire par structure
+
+3. Fonction utilitaire create_json_response()
+
+Centralise la création des réponses JSON
+Libère immédiatement la mémoire après sérialisation
+Évite les fuites mémoire
+
+4. Élimination du threading
+
+Remplacement du thread par un timer simple
+Fonction handle_metal_detection() appelée dans la boucle principale
+
+5. Optimisation des routes
+
+Nettoyage mémoire au début et à la fin de chaque route
+Simplification des conditions et boucles
+Gestion d'erreurs optimisée
+
+6. Amélioration du middleware CORS
+
+Ajout de gc.collect() après chaque requête

@@ -265,6 +265,24 @@ def set_pico_ip():
     print(f"Nouvelle IP Pico enregistrée: {PICO_IP}")
     return jsonify({'status': 'ok', 'ip': PICO_IP})
 
+
+@app.route('/<filename>')
+def serve_audio(filename):
+    try:
+        # Servir les fichiers audio depuis la racine
+        if filename.endswith(('.mp3', '.wav', '.ogg')):
+            with open(filename, 'rb') as file:
+                audio_data = file.read()
+                if filename.endswith('.mp3'):
+                    return audio_data, 200, {'Content-Type': 'audio/mpeg'}
+                elif filename.endswith('.wav'):
+                    return audio_data, 200, {'Content-Type': 'audio/wav'}
+                elif filename.endswith('.ogg'):
+                    return audio_data, 200, {'Content-Type': 'audio/ogg'}
+        return f"Fichier {filename} non trouvé", 404
+    except FileNotFoundError:
+        return f"Fichier {filename} non trouvé", 404
+    
 # Fonction pour maintenir la synchronisation avec la Pico
 def sync_with_pico():
     """Thread pour synchroniser périodiquement l'état avec la Pico"""

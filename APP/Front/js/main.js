@@ -8,6 +8,7 @@ const speedValue = document.getElementById('speed-value');
 
 let jsonLogData = [];
 let isManualMode = true; // Par défaut, le mode est manuel
+let isAudioPlaying = false;
 
 // Fonction pour ajouter une entrée JSON au log sans timestamp
 function addJsonLogEntry(action, description) {
@@ -198,29 +199,68 @@ function updateMetalDetection() {
     const picoIp = getPicoIp();
     const el = document.getElementById('metal-detect-value');
     const metalDiv = document.getElementById('metal-detect');
+    let metalAudio = document.getElementById('metal-audio');
+    
     if (!picoIp) {
         if (el) el.textContent = '--';
-        if (metalDiv) metalDiv.classList.remove('metal-detected');
+        if (metalDiv) metalDiv.classList.remove('metal-detected', 'metal-alert');
+        if (metalAudio && !metalAudio.paused) {
+            metalAudio.pause();
+            isAudioPlaying = false;
+        }
         return;
     }
+    
     fetch(`http://${picoIp}:80/api/metal/`)
         .then(res => res.json())
         .then(data => {
             if (el && metalDiv) {
                 if (data.metal === "metal") {
                     el.textContent = "Métal détecté";
-                    metalDiv.classList.add('metal-detected');
+                    metalDiv.classList.add('metal-detected', 'metal-alert');
+                    
+                    // Ne jouer l'audio que si il n'est pas déjà en cours
+                    if (!isAudioPlaying) {
+                        if (!metalAudio) {
+                            metalAudio = new Audio('scary-movie-wazzup.mp3');
+                            metalAudio.id = 'metal-audio';
+                            document.body.appendChild(metalAudio);
+                            
+                            // Écouter la fin de l'audio
+                            metalAudio.addEventListener('ended', function() {
+                                isAudioPlaying = false;
+                            });
+                        }
+                        
+                        metalAudio.currentTime = 0;
+                        metalAudio.play().then(() => {
+                            isAudioPlaying = true;
+                        }).catch(error => {
+                            console.log('Erreur lecture audio:', error);
+                            isAudioPlaying = false;
+                        });
+                    }
                 } else {
                     el.textContent = "Aucun métal";
-                    metalDiv.classList.remove('metal-detected');
+                    metalDiv.classList.remove('metal-detected', 'metal-alert');
+                    if (metalAudio && !metalAudio.paused) {
+                        metalAudio.pause();
+                        metalAudio.currentTime = 0;
+                        isAudioPlaying = false;
+                    }
                 }
             }
         })
         .catch(() => {
             if (el) el.textContent = '??';
-            if (metalDiv) metalDiv.classList.remove('metal-detected');
+            if (metalDiv) metalDiv.classList.remove('metal-detected', 'metal-alert');
+            if (metalAudio && !metalAudio.paused) {
+                metalAudio.pause();
+                isAudioPlaying = false;
+            }
         });
 }
+
 
 setInterval(updateObstacleDistance, 1500);
 setInterval(updateMetalDetection, 1000);
