@@ -9,15 +9,19 @@ from cycle_rammassage import cycle_rammassage
 from depart_ok import depart_ok
 from utils import is_point_in_polygon, find_closest_point_polygon, calculate_cap
 from cycle_evite_obstacle import cycle_evitement
+from vider_benne import ServoBenne, cycle_vider_bac
 
 # Force la collection garbage au démarrage
 gc.collect()
 print(f"MEMOIRE INITIALE: {gc.mem_free()}")
 
+
 # Configuration garbage collector plus agressive
 gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())
 
 capteur_gps, ecran_lcd, capteur_compas, capteur_obstacle = depart_ok()
+# Ne pas faire servo_benne.stop() ici !
+print("servo benne OK")  # Assurez-vous que le pin est correct pour votre configuration
 gc.collect()
 Robot_moteurs = RobotMoteurs()
 MoteurPAP = MoteurPasAPas()
@@ -283,6 +287,20 @@ def get_distance_obstacle(request):
     response_data = {"distance": distance}
     return create_json_response(response_data)
 
+@app.route('/action/vider', methods=['POST', 'GET'])
+def vider_benne(request):
+    servo_benne = ServoBenne(pin=28)
+    gc.collect()
+    ecran_lcd.clear()
+    ecran_lcd.putstr("Vider benne...")
+    cycle_vider_bac(servo_benne)
+    ecran_lcd.clear()
+    ecran_lcd.putstr("Benne videe")
+    response_data = {"status": "ok"}
+    del servo_benne
+    gc.collect()  # Nettoyage mémoire après l'action
+    return create_json_response(response_data)
+
 @app.route('/api/metal/', methods=['GET'])
 def get_metal_status(request):
     gc.collect()
@@ -300,6 +318,8 @@ def add_cors_headers(request, response):
     gc.collect()  # Nettoyage après chaque requête
     return response
 
+
+############################################################################################################
 # Fonction pour gérer la détection de métal sans thread
 metal_timer = 0
 def handle_metal_detection():

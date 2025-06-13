@@ -12,6 +12,7 @@ gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())
 # os.dupterm(None, 1)
 
 # Configuration de fréquence CPU (optionnel - peut économiser énergie)
+
 # machine.freq(240000000)  # 240MHz au lieu de 125MHz par défaut
 
 print(f"Boot - Mémoire disponible: {gc.mem_free()}")

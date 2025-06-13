@@ -121,12 +121,12 @@ if __name__ == "__main__":
     
     print("Test avec pas complet...")
     moteur.set_step_mode("full")
-    moteur.step_motor(200, delay=0.003, direction=1)
+    moteur.step_motor(100, delay=0.005, direction=1)
     sleep(1)
     
     print("Test avec demi-pas...")
     moteur.set_step_mode("full")
-    moteur.step_motor(400, delay=0.003, direction=-1)  # 400 demi-pas = 200 pas complets
+    moteur.step_motor(100, delay=0.005, direction=-1)  # 400 demi-pas = 200 pas complets
     
     # Arrêter le moteur
     moteur.stop()
