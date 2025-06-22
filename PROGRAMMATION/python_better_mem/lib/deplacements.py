@@ -55,30 +55,42 @@ class RobotMoteurs:
         self.moteurB.stop()
 
 class MoteurPasAPas:
+    """
+    Classe pour contrôler un moteur pas à pas bipolaire (comme le SY42STH47)
+    avec un driver L298N
+    
+    Connexions L298N:
+    - IN1 -> Bobinage A (sens 1)
+    - IN2 -> Bobinage A (sens 2) 
+    - IN3 -> Bobinage B (sens 1)
+    - IN4 -> Bobinage B (sens 2)
+    - ENA et ENB -> 3.3V (toujours activés)
+    """
     def __init__(self, in1=16, in2=17, in3=18, in4=19):
-        self.IN1 = Pin(in1, Pin.OUT)
-        self.IN2 = Pin(in2, Pin.OUT)
-        self.IN3 = Pin(in3, Pin.OUT)
-        self.IN4 = Pin(in4, Pin.OUT)
+        self.IN1 = Pin(in1, Pin.OUT)  # Bobinage A - Direction 1
+        self.IN2 = Pin(in2, Pin.OUT)  # Bobinage A - Direction 2
+        self.IN3 = Pin(in3, Pin.OUT)  # Bobinage B - Direction 1
+        self.IN4 = Pin(in4, Pin.OUT)  # Bobinage B - Direction 2
         
-        # Séquence de pas complet (plus stable)
+        # Séquence pour moteur bipolaire (full step)
+        # [A+, A-, B+, B-]
         self.sequence_full = [
-            [1, 0, 0, 0],
-            [0, 1, 0, 0],
-            [0, 0, 1, 0],
-            [0, 0, 0, 1]
+            [1, 0, 1, 0],  # A+, B+
+            [0, 1, 1, 0],  # A-, B+
+            [0, 1, 0, 1],  # A-, B-
+            [1, 0, 0, 1]   # A+, B-
         ]
         
-        # Séquence de demi-pas (plus de précision mais plus de vibrations)
+        # Séquence demi-pas pour plus de précision
         self.sequence_half = [
-            [1, 0, 0, 0],
-            [1, 1, 0, 0],
-            [0, 1, 0, 0],
-            [0, 1, 1, 0],
-            [0, 0, 1, 0],
-            [0, 0, 1, 1],
-            [0, 0, 0, 1],
-            [1, 0, 0, 1]
+            [1, 0, 1, 0],  # A+, B+
+            [1, 0, 0, 0],  # A+ seulement
+            [0, 1, 1, 0],  # A-, B+
+            [0, 0, 1, 0],  # B+ seulement
+            [0, 1, 0, 1],  # A-, B-
+            [0, 0, 0, 1],  # B- seulement
+            [1, 0, 0, 1],  # A+, B-
+            [0, 0, 0, 0]   # Pause
         ]
         
         # Utiliser la séquence de pas complet par défaut
@@ -91,20 +103,20 @@ class MoteurPasAPas:
         elif mode == "half":
             self.sequence = self.sequence_half
     
-    def step_motor(self, steps, delay=0.005, direction=1):
+    def step_motor(self, steps, delay=0.01, direction=1):
         """
         steps: nombre de pas
-        delay: délai entre chaque pas (en secondes)
+        delay: délai entre chaque pas (en secondes) - minimum 0.01s pour SY42STH47
         direction: 1 pour horaire, -1 pour anti-horaire
         """
         sequence_to_use = self.sequence if direction == 1 else list(reversed(self.sequence))
         
         for _ in range(steps):
             for step in sequence_to_use:
-                self.IN1.value(step[0])
-                self.IN2.value(step[1])
-                self.IN3.value(step[2])
-                self.IN4.value(step[3])
+                self.IN1.value(step[0])  # Bobinage A direction 1
+                self.IN2.value(step[1])  # Bobinage A direction 2
+                self.IN3.value(step[2])  # Bobinage B direction 1
+                self.IN4.value(step[3])  # Bobinage B direction 2
                 sleep(delay)
     
     def stop(self):
@@ -114,36 +126,42 @@ class MoteurPasAPas:
         self.IN3.value(0)
         self.IN4.value(0)
 
+    def tourner_angle(self, angle, delay=0.01, direction=1):
+        """
+        Tourner d'un angle spécifique
+        angle: angle en degrés
+        Le SY42STH47 a un pas de 1.8° donc 200 pas = 360°
+        """
+        steps_per_revolution = 200  # 360° / 1.8° par pas
+        steps = int((angle / 360.0) * steps_per_revolution)
+        self.step_motor(steps, delay, direction)
 
-# Exemple d'utilisation
+# Exemple d'utilisation corrigée
 if __name__ == "__main__":
-    moteur = MoteurPasAPas()
-    
-    print("Test avec pas complet...")
-    moteur.set_step_mode("full")
-    moteur.step_motor(100, delay=0.005, direction=1)
-    sleep(1)
-    
-    print("Test avec demi-pas...")
-    moteur.set_step_mode("full")
-    moteur.step_motor(100, delay=0.005, direction=-1)  # 400 demi-pas = 200 pas complets
-    
-    # Arrêter le moteur
-    moteur.stop()
+#     # Utiliser la nouvelle classe pour moteur bipolaire
+     print("demmarage")
+     moteur = MoteurPasAPas()
+ 
+     moteur.set_step_mode("half")
+    #moteur.step_motor(20)
+     moteur.tourner_angle(35, delay=0.01, direction=1)
+     moteur.tourner_angle(10, delay=0.005, direction=-1)  # 200 pas = 1 tour
+     sleep(3)
+     moteur.tourner_angle(25, delay=0.01, direction=1)
+     sleep(3)
+ 
+     
+     # Arrêter le moteur
+     moteur.stop()
+     
+     print("Tests terminés!")
+#     print("depart")
+#     moteur = RobotMoteurs()
+#     moteur.avancer()
+#     sleep(2)
+#  
+#     moteur.stop()
 
-#     robot = RobotMoteurs()
-#     robot.vitesse(60000)
-#     robot.avancer()
-# #    Moteurpasapas.step_motor(200, delay=0.01, direction=1)
-#     sleep(2)
-#     robot.gauche()
-#     sleep(4)
-#     robot.stop()
-#    sleep(2)
-#     robot.reculer()
-#     sleep(2)
-#     robot.gauche()
-#     sleep(2)
-#     robot.stop()
+
 
 

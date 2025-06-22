@@ -20,8 +20,7 @@ print(f"MEMOIRE INITIALE: {gc.mem_free()}")
 gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())
 
 capteur_gps, ecran_lcd, capteur_compas, capteur_obstacle = depart_ok()
-# Ne pas faire servo_benne.stop() ici !
-print("servo benne OK")  # Assurez-vous que le pin est correct pour votre configuration
+
 gc.collect()
 Robot_moteurs = RobotMoteurs()
 MoteurPAP = MoteurPasAPas()

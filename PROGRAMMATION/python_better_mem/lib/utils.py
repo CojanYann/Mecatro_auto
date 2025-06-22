@@ -3,8 +3,8 @@ import machine
 import urequests
 import gc
 
-def i2cscan(sda=8, scl=9):
-    i2c = machine.I2C(0, sda=sda, scl=scl, freq=400000)
+def i2cscan(sda=8, scl=9, i =0):
+    i2c = machine.I2C(i, sda=sda, scl=scl, freq=400000)
     result = i2c.scan()
     del i2c  # Libère l'objet I2C
     gc.collect()
@@ -127,7 +127,6 @@ def check_mode_auto(ip="192.168.6.235", port="5000"):
 
 if __name__ == "__main__":
     # Test optimisé
-    test_point = (47, 2)
-    result = is_point_in_polygon(test_point[0], test_point[1], polygon_points)
-    print(f"Point {test_point} dans polygone: {result}")
-    gc.collect()
+    a = i2cscan(sda=2, scl=3, i = 1)
+    print(a)
+    

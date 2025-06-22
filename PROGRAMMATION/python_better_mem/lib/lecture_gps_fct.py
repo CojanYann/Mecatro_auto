@@ -31,3 +31,13 @@ class GPS:
         if satellite_bool == 1:
             print("Satellites visibles:", self.gps.satellites_in_use)
         return None
+    
+if __name__ == "__main__":
+    gps = GPS()
+    while True:
+        coords = gps.read()
+        if coords:
+            print(f"Latitude: {coords[0]}, Longitude: {coords[1]}")
+        else:
+            print("Aucune donnée GPS reçue.")
+        utime.sleep(1)

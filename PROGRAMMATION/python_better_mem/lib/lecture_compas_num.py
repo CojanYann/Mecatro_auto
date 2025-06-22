@@ -3,7 +3,7 @@ from time import sleep
 import machine
 
 class CompasNumerique:
-    def __init__(self, sda_pin=2, scl_pin=3, addr=0x13, i2c_id=1):
+    def __init__(self, sda_pin=2, scl_pin=3, addr=19, i2c_id=1):
         try:
             # Vérifie que le compas est bien détecté
             i2c = machine.I2C(i2c_id, sda=machine.Pin(sda_pin), scl=machine.Pin(scl_pin), freq=400000)
@@ -37,7 +37,7 @@ class CompasNumerique:
 if __name__ == "__main__":
     print("Démarrage du programme...")
     sleep(1)
-    compas = CompasNumerique(sda_pin=2, scl_pin=3, addr=0x13, i2c_id=1)
+    compas = CompasNumerique(sda_pin=2, scl_pin=3, addr=19, i2c_id=1)
     if compas.is_connected():
         for i in range(20):
             cap = compas.lire_cap()
